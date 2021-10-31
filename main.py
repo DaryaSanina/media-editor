@@ -9,7 +9,6 @@ HTML_EXTENSIONS = ['.htm', '.html']
 TEXT_EXTENSIONS = ['.txt']
 IMAGE_EXTENSIONS = ['.png', '.jpg', '.bmp']
 AUDIO_EXTENSIONS = ['.mp3', '.wav']
-VIDEO_EXTENSIONS = ['.mp4', '.mov', '.wmv', '.avi']
 
 filename = ''
 
@@ -51,7 +50,8 @@ class MainWindow(QMainWindow):
 
         # Guessing what editor the user wants to open
         if extension in TEXT_EXTENSIONS or extension in HTML_EXTENSIONS \
-                and QMessageBox.question(self, '', "Do you want to edit a text document?",
+                and QMessageBox.question(self, 'File type guess',
+                                         "Do you want to edit a text document?",
                                          QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
             windows.setCurrentIndex(1)
             text_editing_window.filename = filename
@@ -59,24 +59,21 @@ class MainWindow(QMainWindow):
                 text_editing_window.text_edit.setText(source_file.read())
 
         elif extension in IMAGE_EXTENSIONS \
-                and QMessageBox.question(self, '', "Do you want to edit an image?",
+                and QMessageBox.question(self, 'File type guess', "Do you want to edit an image?",
                                          QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
             windows.setCurrentIndex(2)
         elif extension in AUDIO_EXTENSIONS \
-                and QMessageBox.question(self, '', "Do you want to edit an audio file?",
+                and QMessageBox.question(self, 'File type guess',
+                                         "Do you want to edit an audio file?",
                                          QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
             windows.setCurrentIndex(3)
-        elif extension in VIDEO_EXTENSIONS \
-                and QMessageBox.question(self, '', "Do you want to edit a video?",
-                                         QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
-            windows.setCurrentIndex(4)
 
         else:
             # If the guess isn't correct,
             # creating an input dialog to ask the user what editor to open
             file_type, ok_pressed = QInputDialog.getItem(self, "Choose media type",
                                                          "Choose what you want to edit:",
-                                                         ("Image", "Text", "Audio", "Video"),
+                                                         ("Image", "Text", "Audio"),
                                                          0, False)
 
             # Opening the editor that the user wants to open
@@ -92,8 +89,6 @@ class MainWindow(QMainWindow):
 
                 elif file_type == "Audio":
                     windows.setCurrentIndex(3)
-                elif file_type == "Video":
-                    windows.setCurrentIndex(4)
 
 
 class TextEditingWindow(QMainWindow):
@@ -198,11 +193,6 @@ class AudioEditingWindow(QMainWindow):
     pass
 
 
-class VideoEditingWindow(QMainWindow):
-    # TODO
-    pass
-
-
 if __name__ == '__main__':
     app = QApplication(sys.argv)
 
@@ -219,9 +209,6 @@ if __name__ == '__main__':
 
     audio_editing_window = AudioEditingWindow()
     windows.addWidget(audio_editing_window)
-
-    video_editing_window = VideoEditingWindow()
-    windows.addWidget(video_editing_window)
 
     windows.setFixedHeight(600)
     windows.setFixedWidth(800)
