@@ -241,7 +241,7 @@ text-color: white;</string>
     <property name="font">
      <font>
       <family>Calibri</family>
-      <pointsize>18</pointsize>
+      <pointsize>13</pointsize>
      </font>
     </property>
     <property name="styleSheet">
@@ -254,7 +254,7 @@ color: white;</string>
     </property>
     <property name="icon">
      <iconset theme="icons/create_new_btn_icon.jpg">
-      <normaloff>.</normaloff>.</iconset>
+      <normaloff>../../../../.designer/backup</normaloff>../../../../.designer/backup</iconset>
     </property>
    </widget>
    <widget class="QPushButton" name="open_btn">
@@ -269,7 +269,7 @@ color: white;</string>
     <property name="font">
      <font>
       <family>Calibri</family>
-      <pointsize>18</pointsize>
+      <pointsize>13</pointsize>
      </font>
     </property>
     <property name="styleSheet">
@@ -282,7 +282,7 @@ color: white;</string>
     </property>
     <property name="icon">
      <iconset theme="icons/create_new_btn_icon.jpg">
-      <normaloff>.</normaloff>.</iconset>
+      <normaloff>../../../../.designer/backup</normaloff>../../../../.designer/backup</iconset>
     </property>
    </widget>
   </widget>
@@ -298,8 +298,6 @@ color: white;</string>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
- <resources>
-  <include location="title_image_resource.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>
