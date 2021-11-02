@@ -68,7 +68,7 @@ class MainWindow(QMainWindow):
                                          QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
             windows.setCurrentIndex(3)
 
-        else:
+        elif extension != '':
             # If the guess isn't correct,
             # creating an input dialog to ask the user what editor to open
             file_type, ok_pressed = QInputDialog.getItem(self, "Choose media type",
