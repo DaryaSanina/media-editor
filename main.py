@@ -1,9 +1,10 @@
 import sys
 
 from PyQt5 import uic
-from PyQt5.QtGui import QPixmap, QFont
+from PyQt5.QtGui import QPixmap, QFont, QKeyEvent, QKeySequence
 from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QInputDialog, QFileDialog, QMessageBox
 from PyQt5.QtWidgets import QStackedWidget
+from PyQt5.QtCore import Qt
 
 HTML_EXTENSIONS = ['.htm', '.html']
 TEXT_EXTENSIONS = ['.txt']
@@ -144,6 +145,13 @@ class TextEditingWindow(QMainWindow):
         filename = QFileDialog.getSaveFileName(self, 'Save file', '')[0]
         with open(filename, 'w', encoding='utf-8') as dest_file:
             dest_file.write(self.text_edit.toPlainText())
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        if int(event.modifiers()) == Qt.ControlModifier and event.key() == Qt.Key_S:
+            self.save()
+        elif int(event.modifiers()) == (Qt.ControlModifier + Qt.ShiftModifier) \
+                and event.key() == Qt.Key_S:
+            self.save_as()
 
     def change_font(self, font: QFont) -> None:
         self.text_edit.setCurrentFont(font)
