@@ -1,10 +1,10 @@
 import sys
 
 from PyQt5 import uic
-from PyQt5.QtGui import QPixmap, QFont, QKeyEvent, QIcon, QPainter, QPaintEvent
+from PyQt5.QtGui import QPixmap, QFont, QKeyEvent, QIcon, QPainter, QPaintEvent, QImage
 from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QInputDialog, QFileDialog, QMessageBox
 from PyQt5.QtWidgets import QStackedWidget
-from PyQt5.QtCore import Qt, QRect
+from PyQt5.QtCore import Qt, QSize
 
 HTML_EXTENSIONS = ['.htm', '.html']
 TEXT_EXTENSIONS = ['.txt']
@@ -55,6 +55,7 @@ class MainWindow(QMainWindow):
                                          "Do you want to edit a text document?",
                                          QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
             windows.setCurrentIndex(1)
+            # Read the text from the file
             with open(filename, 'r', encoding='utf-8') as source_file:
                 text_editing_window.text_edit.setText(source_file.read())
 
@@ -62,6 +63,7 @@ class MainWindow(QMainWindow):
                 and QMessageBox.question(self, 'File type guess', "Do you want to edit an image?",
                                          QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
             windows.setCurrentIndex(2)
+            # Display the image from the opened file
             image_editing_window.image.setPixmap(QPixmap(filename)
                                                  .scaled(620, 470, Qt.KeepAspectRatio))
         elif extension in AUDIO_EXTENSIONS \
@@ -82,11 +84,13 @@ class MainWindow(QMainWindow):
             if ok_pressed:
                 if file_type == "Text":
                     windows.setCurrentIndex(1)
+                    # Read the text from the file
                     with open(filename, 'r', encoding='utf-8') as source_file:
                         text_editing_window.text_edit.setText(source_file.read())
 
                 elif file_type == "Image":
                     windows.setCurrentIndex(2)
+                    # Display the image from the opened file
                     image_editing_window.image.setPixmap(QPixmap(filename)
                                                          .scaled(620, 470, Qt.KeepAspectRatio))
 
@@ -150,9 +154,11 @@ class TextEditingWindow(QMainWindow):
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         if int(event.modifiers()) == Qt.ControlModifier and event.key() == Qt.Key_S:
+            # "Ctrl" + "S" shortcut to save the file
             self.save()
         elif int(event.modifiers()) == (Qt.ControlModifier + Qt.ShiftModifier) \
                 and event.key() == Qt.Key_S:
+            # "Ctrl" + "Shift" + "S" shortcut to save the file
             self.save_as()
 
     def change_font(self, font: QFont) -> None:
@@ -199,10 +205,20 @@ class ImageEditingWindow(QMainWindow):
         uic.loadUi('designs/image_editor_window.ui', self)
         self.initUI()
 
-    def initUI(self):
+    def initUI(self) -> None:
+        # Create a label that will display the opened image or a new white image
         self.image = QLabel(self)
         self.image.move(170, 80)
         self.image.resize(620, 470)
+
+    def paintEvent(self, event: QPaintEvent) -> None:
+        if not self.image.pixmap():
+            # If the user has created a new image, fill it with white color
+            pixmap = QPixmap(620, 470)
+            pixmap.fill(Qt.white)
+            self.image.setPixmap(pixmap)
+        # Create a QPainter object with the opened image or the new white image
+        painter = QPainter(self.image.pixmap())
     # TODO
     pass
 
