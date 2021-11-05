@@ -1,7 +1,7 @@
 import sys
 
 from PyQt5 import uic
-from PyQt5.QtGui import QPixmap, QFont, QKeyEvent, QKeySequence
+from PyQt5.QtGui import QPixmap, QFont, QKeyEvent, QIcon
 from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QInputDialog, QFileDialog, QMessageBox
 from PyQt5.QtWidgets import QStackedWidget
 from PyQt5.QtCore import Qt
@@ -221,6 +221,7 @@ if __name__ == '__main__':
     windows.setFixedHeight(600)
     windows.setFixedWidth(800)
     windows.setWindowTitle("Media Editor")
+    windows.setWindowIcon(QIcon('designs/icons/window_icon.jpg'))
 
     windows.show()
 
