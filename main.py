@@ -1,14 +1,14 @@
 import sys
 
 from PyQt5 import uic
-from PyQt5.QtGui import QPixmap, QFont, QKeyEvent, QIcon
+from PyQt5.QtGui import QPixmap, QFont, QKeyEvent, QIcon, QPainter, QPaintEvent
 from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QInputDialog, QFileDialog, QMessageBox
 from PyQt5.QtWidgets import QStackedWidget
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QRect
 
 HTML_EXTENSIONS = ['.htm', '.html']
 TEXT_EXTENSIONS = ['.txt']
-IMAGE_EXTENSIONS = ['.png', '.jpg', '.bmp']
+IMAGE_EXTENSIONS = ['.png', '.jpg', '.bmp', '.gif', '.jpeg', '.pbm', '.tiff', '.svg', '.xbm']
 AUDIO_EXTENSIONS = ['.mp3', '.wav']
 
 filename = ''
@@ -55,7 +55,6 @@ class MainWindow(QMainWindow):
                                          "Do you want to edit a text document?",
                                          QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
             windows.setCurrentIndex(1)
-            text_editing_window.filename = filename
             with open(filename, 'r', encoding='utf-8') as source_file:
                 text_editing_window.text_edit.setText(source_file.read())
 
@@ -63,6 +62,8 @@ class MainWindow(QMainWindow):
                 and QMessageBox.question(self, 'File type guess', "Do you want to edit an image?",
                                          QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
             windows.setCurrentIndex(2)
+            image_editing_window.image.setPixmap(QPixmap(filename)
+                                                 .scaled(620, 470, Qt.KeepAspectRatio))
         elif extension in AUDIO_EXTENSIONS \
                 and QMessageBox.question(self, 'File type guess',
                                          "Do you want to edit an audio file?",
@@ -81,12 +82,13 @@ class MainWindow(QMainWindow):
             if ok_pressed:
                 if file_type == "Text":
                     windows.setCurrentIndex(1)
-                    text_editing_window.filename = filename
                     with open(filename, 'r', encoding='utf-8') as source_file:
                         text_editing_window.text_edit.setText(source_file.read())
 
                 elif file_type == "Image":
                     windows.setCurrentIndex(2)
+                    image_editing_window.image.setPixmap(QPixmap(filename)
+                                                         .scaled(620, 470, Qt.KeepAspectRatio))
 
                 elif file_type == "Audio":
                     windows.setCurrentIndex(3)
@@ -192,6 +194,15 @@ class TextEditingWindow(QMainWindow):
 
 
 class ImageEditingWindow(QMainWindow):
+    def __init__(self):
+        super(ImageEditingWindow, self).__init__()
+        uic.loadUi('designs/image_editor_window.ui', self)
+        self.initUI()
+
+    def initUI(self):
+        self.image = QLabel(self)
+        self.image.move(170, 80)
+        self.image.resize(620, 470)
     # TODO
     pass
 
