@@ -1,10 +1,10 @@
 import sys
 
 from PyQt5 import uic
-from PyQt5.QtGui import QPixmap, QFont, QKeyEvent, QIcon, QPainter, QPaintEvent, QImage
+from PyQt5.QtGui import QPixmap, QFont, QKeyEvent, QIcon, QPainter, QPaintEvent
 from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QInputDialog, QFileDialog, QMessageBox
-from PyQt5.QtWidgets import QStackedWidget
-from PyQt5.QtCore import Qt, QSize
+from PyQt5.QtWidgets import QStackedWidget, QDialog, QDialogButtonBox
+from PyQt5.QtCore import Qt
 
 HTML_EXTENSIONS = ['.htm', '.html']
 TEXT_EXTENSIONS = ['.txt']
@@ -18,12 +18,10 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         uic.loadUi('designs/main_window.ui', self)
-        self.initUI()
 
         self.create_new_btn.clicked.connect(self.choose_what_to_create)
         self.open_btn.clicked.connect(self.open)
 
-    def initUI(self) -> None:
         # Displaying the logo in the main window
         self.title_image_pixmap = QPixmap('designs/title_image.jpg')
         self.title_image = QLabel(self)
@@ -39,7 +37,40 @@ class MainWindow(QMainWindow):
         if ok_pressed:
             # Opening the editor that the user wants to open
             if file_type == "Image":
-                windows.setCurrentIndex(2)
+                # Create a dialog
+                # to ask the user about the width and the height of the picture to create
+                dialog = ChooseImageSizeDialog()
+                dialog.exec_()
+                if dialog.result() == 1:
+                    # If the user has clicked "OK", change the window to the image editor
+                    windows.setCurrentIndex(2)
+                    if dialog.unit_combo_box.currentText == "in":
+                        # If the user has chosen inches as units of the size:
+
+                        # Get the dots per inch value of current screen
+                        dpi = app.screens()[0].physicalDotsPerInch()
+
+                        # Calculate the width and the height of the image in pixels
+                        image_editing_window.image_width = dialog.width_spin_box.value() * dpi
+                        image_editing_window.image_height = dialog.height_spin_box.value() * dpi
+                    elif dialog.unit_combo_box.currentText == "cm":
+                        # If the user has chosen centimeters as units of the size:
+
+                        # Calculate the width and the height of the image in inches
+                        image_width_inches = dialog.width_spin_box.value() / 2.54
+                        image_height_inches = dialog.height_spin_box.value() / 2.54
+
+                        # Get the dots per inch value of current screen
+                        dpi = app.screens()[0].physicalDotsPerInch()
+
+                        # Calculate the width and the height of the image in pixels
+                        image_editing_window.image_width = image_width_inches * dpi
+                        image_editing_window.image_height = image_height_inches * dpi
+                    else:
+                        # If the user has chosen pixels as units of the size,
+                        # set the width and the height of the image to the data the user has entered
+                        image_editing_window.image_width = dialog.width_spin_box.value()
+                        image_editing_window.image_height = dialog.height_spin_box.value()
             elif file_type == "Text":
                 windows.setCurrentIndex(1)
 
@@ -199,24 +230,36 @@ class TextEditingWindow(QMainWindow):
             self.text_edit.setCurrentFont(font)
 
 
+class ChooseImageSizeDialog(QDialog):
+    def __init__(self):
+        super(ChooseImageSizeDialog, self).__init__()
+        uic.loadUi('designs/choose_size_dialog.ui', self)
+
+
 class ImageEditingWindow(QMainWindow):
     def __init__(self):
         super(ImageEditingWindow, self).__init__()
         uic.loadUi('designs/image_editor_window.ui', self)
-        self.initUI()
 
-    def initUI(self) -> None:
         # Create a label that will display the opened image or a new white image
         self.image = QLabel(self)
         self.image.move(170, 80)
-        self.image.resize(620, 470)
+
+        # Assign the width and the height of the image to 0
+        self.image_width = 0
+        self.image_height = 0
 
     def paintEvent(self, event: QPaintEvent) -> None:
+        self.image.resize(620, 470)
         if not self.image.pixmap():
             # If the user has created a new image, fill it with white color
-            pixmap = QPixmap(620, 470)
+            pixmap = QPixmap(self.image_width, self.image_height)
             pixmap.fill(Qt.white)
             self.image.setPixmap(pixmap)
+        else:
+            # If the user has opened an image:
+            self.image_width = self.image.pixmap().width
+            self.image_height = self.image.pixmap().height
         # Create a QPainter object with the opened image or the new white image
         painter = QPainter(self.image.pixmap())
     # TODO
