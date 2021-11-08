@@ -1,15 +1,14 @@
 import sys
-import io
 
 from PIL import Image
 from PIL.ImageQt import ImageQt
 import pilgram
 
 from PyQt5 import uic
-from PyQt5.QtGui import QPixmap, QFont, QKeyEvent, QIcon, QPainter, QPaintEvent, QImage
+from PyQt5.QtGui import QPixmap, QFont, QKeyEvent, QIcon, QPainter, QPaintEvent
 from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QInputDialog, QFileDialog, QMessageBox
 from PyQt5.QtWidgets import QStackedWidget, QDialog
-from PyQt5.QtCore import Qt, QBuffer
+from PyQt5.QtCore import Qt
 
 HTML_EXTENSIONS = ['.htm', '.html']
 TEXT_EXTENSIONS = ['.txt']
@@ -42,40 +41,8 @@ class MainWindow(QMainWindow):
         if ok_pressed:
             # Opening the editor that the user wants to open
             if file_type == "Image":
-                # Create a dialog
-                # to ask the user about the width and the height of the picture to create
-                dialog = ChooseImageSizeDialog()
-                dialog.exec_()
-                if dialog.result() == 1:
-                    # If the user has clicked "OK", change the window to the image editor
-                    windows.setCurrentIndex(2)
-                    if dialog.unit_combo_box.currentText == "in":
-                        # If the user has chosen inches as units of the size:
-
-                        # Get the dots per inch value of current screen
-                        dpi = app.screens()[0].physicalDotsPerInch()
-
-                        # Calculate the width and the height of the image in pixels
-                        image_editing_window.image_width = dialog.width_spin_box.value() * dpi
-                        image_editing_window.image_height = dialog.height_spin_box.value() * dpi
-                    elif dialog.unit_combo_box.currentText == "cm":
-                        # If the user has chosen centimeters as units of the size:
-
-                        # Calculate the width and the height of the image in inches
-                        image_width_inches = dialog.width_spin_box.value() / 2.54
-                        image_height_inches = dialog.height_spin_box.value() / 2.54
-
-                        # Get the dots per inch value of current screen
-                        dpi = app.screens()[0].physicalDotsPerInch()
-
-                        # Calculate the width and the height of the image in pixels
-                        image_editing_window.image_width = image_width_inches * dpi
-                        image_editing_window.image_height = image_height_inches * dpi
-                    elif dialog.unit_combo_box.currentText == "px":
-                        # If the user has chosen pixels as units of the size,
-                        # set the width and the height of the image to the data the user has entered
-                        image_editing_window.image_width = dialog.width_spin_box.value()
-                        image_editing_window.image_height = dialog.height_spin_box.value()
+                windows.setCurrentIndex(2)
+                image_editing_window.new()
             elif file_type == "Text":
                 windows.setCurrentIndex(1)
 
@@ -91,7 +58,7 @@ class MainWindow(QMainWindow):
                                          "Do you want to edit a text document?",
                                          QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
             windows.setCurrentIndex(1)
-            # Read the text from the file
+            # Reading the text from the file
             with open(filename, 'r', encoding='utf-8') as source_file:
                 text_editing_window.text_edit.setText(source_file.read())
 
@@ -99,7 +66,7 @@ class MainWindow(QMainWindow):
                 and QMessageBox.question(self, 'File type guess', "Do you want to edit an image?",
                                          QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
             windows.setCurrentIndex(2)
-            # Display the image from the opened file
+            # Displaying the image from the opened file
             image_editing_window.image.setPixmap(QPixmap(filename)
                                                  .scaled(620, 470, Qt.KeepAspectRatio))
             image_editing_window.is_saved = True
@@ -121,13 +88,13 @@ class MainWindow(QMainWindow):
             if ok_pressed:
                 if file_type == "Text":
                     windows.setCurrentIndex(1)
-                    # Read the text from the file
+                    # Reading the text from the file
                     with open(filename, 'r', encoding='utf-8') as source_file:
                         text_editing_window.text_edit.setText(source_file.read())
 
                 elif file_type == "Image":
                     windows.setCurrentIndex(2)
-                    # Display the image from the opened file
+                    # Displaying the image from the opened file
                     image_editing_window.image.setPixmap(QPixmap(filename)
                                                          .scaled(620, 470, Qt.KeepAspectRatio))
                     image_editing_window.is_saved = True
@@ -172,13 +139,13 @@ class TextEditingWindow(QMainWindow):
         global filename
 
         if filename == '':
-            # If the file is new, ask the user for the filename
+            # If the file is new, asking the user for the filename
             filename = QFileDialog.getSaveFileName(self, 'Save file', '')[0]
         with open(filename, 'w', encoding='utf-8') as dest_file:
             extension = filename[filename.rfind('.')::]
             # If the extension of the file the user wants to save the text to is an html extension,
-            # save the text with formatting,
-            # else save the text without formatting
+            # saving the text with formatting,
+            # else saving the text without formatting
             text = self.text_edit.toHtml() if extension in HTML_EXTENSIONS \
                 else self.text_edit.toPlainText()
             dest_file.write(text)
@@ -206,28 +173,28 @@ class TextEditingWindow(QMainWindow):
         self.text_edit.setFontPointSize(font_point_size)
 
     def set_bold(self) -> None:
-        # Make the text bold if the "bold_btn" is checked, else make it not bold
+        # Making the text bold if the "bold_btn" is checked, else making it not bold
         if self.sender().isChecked():
             self.text_edit.setFontWeight(QFont.Bold)
         else:
             self.text_edit.setFontWeight(QFont.NoFontMerging)
 
     def set_italic(self) -> None:
-        # Make the text italic if the "italic_btn" is checked, else make it not italic
+        # Making the text italic if the "italic_btn" is checked, else making it not italic
         if self.sender().isChecked():
             self.text_edit.setFontItalic(True)
         else:
             self.text_edit.setFontItalic(False)
 
     def set_underlined(self) -> None:
-        # Underline the text if the "underline_btn" is checked, else make it not underlined
+        # Underlining the text if the "underline_btn" is checked, else making it not underlined
         if self.sender().isChecked():
             self.text_edit.setFontUnderline(True)
         else:
             self.text_edit.setFontUnderline(False)
 
     def set_strikeout(self) -> None:
-        # Strikeout the text if the "strikeout_btn" is checked, else make it not stroke out
+        # Strikeouting the text if the "strikeout_btn" is checked, else making it not stroke out
         font = self.text_edit.currentFont()
         if self.sender().isChecked():
             font.setStrikeOut(True)
@@ -248,11 +215,11 @@ class ImageEditingWindow(QMainWindow):
         super(ImageEditingWindow, self).__init__()
         uic.loadUi('designs/image_editor_window.ui', self)
 
-        # Create a label that will display the opened image or a new white image
+        # Creating a label that will display the opened image or a new white image
         self.image = QLabel(self)
         self.image.move(170, 80)
 
-        # Assign the width and the height of the image to 0
+        # Assigning the width and the height of the image to 0
         self.image_width = 0
         self.image_height = 0
 
@@ -260,7 +227,89 @@ class ImageEditingWindow(QMainWindow):
 
         self.pixmap_without_filters = None
 
+        self.new_btn.clicked.connect(self.new)
+        self.open_btn.clicked.connect(self.open)
+        self.save_btn.clicked.connect(self.save)
+        self.save_as_btn.clicked.connect(self.save_as)
         self.filter_combo_box.currentTextChanged.connect(self.change_filter)
+
+    def new(self) -> None:
+        # Creating a dialog
+        # to ask the user about the width and the height of the picture to create
+        dialog = ChooseImageSizeDialog()
+        dialog.exec_()
+        if dialog.result() == 1:
+            # If the user has clicked "OK", changing the window to the image editor
+            windows.setCurrentIndex(2)
+            if dialog.unit_combo_box.currentText() == "in":
+                # If the user has chosen inches as units of the size:
+
+                # Getting the dots per inch value of current screen
+                dpi = app.screens()[0].physicalDotsPerInch()
+
+                # Calculating the width and the height of the image in pixels
+                self.image_width = int(dialog.width_spin_box.value() * dpi)
+                self.image_height = int(dialog.height_spin_box.value() * dpi)
+            elif dialog.unit_combo_box.currentText() == "cm":
+                # If the user has chosen centimeters as units of the size:
+
+                # Calculating the width and the height of the image in inches
+                image_width_inches = dialog.width_spin_box.value() / 2.54
+                image_height_inches = dialog.height_spin_box.value() / 2.54
+
+                # Getting the dots per inch value of current screen
+                dpi = app.screens()[0].physicalDotsPerInch()
+
+                # Calculating the width and the height of the image in pixels
+                self.image_width = int(image_width_inches * dpi)
+                self.image_height = int(image_height_inches * dpi)
+            elif dialog.unit_combo_box.currentText() == "px":
+                # If the user has chosen pixels as units of the size,
+                # setting the width and the height of the image to the data the user has entered
+                self.image_width = dialog.width_spin_box.value()
+                self.image_height = dialog.height_spin_box.value()
+
+        pixmap = QPixmap(self.image_width, self.image_height)
+        pixmap.fill(Qt.white)
+        self.image.setPixmap(pixmap)
+
+        self.pixmap_without_filters = QPixmap(self.image_width, self.image_height)
+        self.pixmap_without_filters.fill(Qt.white)
+
+        self.is_saved = False
+
+    def open(self) -> None:
+        global filename
+
+        # Getting the filename
+        filename = QFileDialog.getOpenFileName(self, 'Choose file', '')[0]
+
+        # Displaying the image from the opened file
+        image_editing_window.image.setPixmap(QPixmap(filename)
+                                             .scaled(620, 470, Qt.KeepAspectRatio))
+        image_editing_window.is_saved = True
+
+    def save(self) -> None:
+        global filename
+
+        if filename == '':
+            # If the file is new, asking the user for the filename
+            filename = QFileDialog.getSaveFileName(self, 'Save file', '')[0]
+
+        if filename != '':
+            # If the user didn't click "Cancel":
+            extension = filename[filename.rfind('.')::][1::].upper()
+            self.image.pixmap().save(filename, extension)
+
+    def save_as(self) -> None:
+        global filename
+
+        filename = QFileDialog.getSaveFileName(self, 'Save file', '')[0]
+
+        if filename != '':
+            # If the user didn't click "Cancel":
+            extension = filename[filename.rfind('.')::][1::].upper()
+            self.image.pixmap().save(filename, extension)
 
     def paintEvent(self, event: QPaintEvent) -> None:
         self.image.resize(620, 470)
@@ -271,7 +320,7 @@ class ImageEditingWindow(QMainWindow):
 
             self.pixmap_without_filters = QPixmap(filename).scaled(620, 470, Qt.KeepAspectRatio)
         else:
-            # If the user has created a new image, fill it with white color
+            # If the user has created a new image, filling it with white color
             pixmap = QPixmap(self.image_width, self.image_height)
             pixmap.fill(Qt.white)
             self.image.setPixmap(pixmap)
@@ -279,7 +328,7 @@ class ImageEditingWindow(QMainWindow):
             self.pixmap_without_filters = QPixmap(self.image_width, self.image_height)
             self.pixmap_without_filters.fill(Qt.white)
 
-        # Create a QPainter object with the opened image or the new white image
+        # Creating a QPainter object with the opened image or the new white image
         painter = QPainter(self.image.pixmap())
 
     def change_filter(self, image_filter: str) -> None:
