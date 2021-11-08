@@ -1,10 +1,15 @@
 import sys
+import io
+
+from PIL import Image
+from PIL.ImageQt import ImageQt
+import pilgram
 
 from PyQt5 import uic
-from PyQt5.QtGui import QPixmap, QFont, QKeyEvent, QIcon, QPainter, QPaintEvent
+from PyQt5.QtGui import QPixmap, QFont, QKeyEvent, QIcon, QPainter, QPaintEvent, QImage
 from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QInputDialog, QFileDialog, QMessageBox
-from PyQt5.QtWidgets import QStackedWidget, QDialog, QDialogButtonBox
-from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QStackedWidget, QDialog
+from PyQt5.QtCore import Qt, QBuffer
 
 HTML_EXTENSIONS = ['.htm', '.html']
 TEXT_EXTENSIONS = ['.txt']
@@ -66,7 +71,7 @@ class MainWindow(QMainWindow):
                         # Calculate the width and the height of the image in pixels
                         image_editing_window.image_width = image_width_inches * dpi
                         image_editing_window.image_height = image_height_inches * dpi
-                    else:
+                    elif dialog.unit_combo_box.currentText == "px":
                         # If the user has chosen pixels as units of the size,
                         # set the width and the height of the image to the data the user has entered
                         image_editing_window.image_width = dialog.width_spin_box.value()
@@ -97,6 +102,7 @@ class MainWindow(QMainWindow):
             # Display the image from the opened file
             image_editing_window.image.setPixmap(QPixmap(filename)
                                                  .scaled(620, 470, Qt.KeepAspectRatio))
+            image_editing_window.is_saved = True
         elif extension in AUDIO_EXTENSIONS \
                 and QMessageBox.question(self, 'File type guess',
                                          "Do you want to edit an audio file?",
@@ -124,6 +130,7 @@ class MainWindow(QMainWindow):
                     # Display the image from the opened file
                     image_editing_window.image.setPixmap(QPixmap(filename)
                                                          .scaled(620, 470, Qt.KeepAspectRatio))
+                    image_editing_window.is_saved = True
 
                 elif file_type == "Audio":
                     windows.setCurrentIndex(3)
@@ -249,19 +256,90 @@ class ImageEditingWindow(QMainWindow):
         self.image_width = 0
         self.image_height = 0
 
+        self.is_saved = False
+
+        self.pixmap_without_filters = None
+
+        self.filter_combo_box.currentTextChanged.connect(self.change_filter)
+
     def paintEvent(self, event: QPaintEvent) -> None:
         self.image.resize(620, 470)
-        if not self.image.pixmap():
+        if self.is_saved:
+            # If the user has opened an image:
+            self.image_width = self.image.pixmap().width()
+            self.image_height = self.image.pixmap().height()
+
+            self.pixmap_without_filters = QPixmap(filename).scaled(620, 470, Qt.KeepAspectRatio)
+        else:
             # If the user has created a new image, fill it with white color
             pixmap = QPixmap(self.image_width, self.image_height)
             pixmap.fill(Qt.white)
             self.image.setPixmap(pixmap)
-        else:
-            # If the user has opened an image:
-            self.image_width = self.image.pixmap().width
-            self.image_height = self.image.pixmap().height
+
+            self.pixmap_without_filters = QPixmap(self.image_width, self.image_height)
+            self.pixmap_without_filters.fill(Qt.white)
+
         # Create a QPainter object with the opened image or the new white image
         painter = QPainter(self.image.pixmap())
+
+    def change_filter(self, image_filter: str) -> None:
+        if image_filter == "Original":
+            self.image.setPixmap(self.pixmap_without_filters)
+        else:
+            if self.is_saved:
+                pil_image = Image.open(filename)
+            else:
+                image_qt_image = self.image.pixmap().toImage()
+                data = image_qt_image.constBits().asstring(image_qt_image.byteCount())
+                pil_image = Image.frombuffer('RGBA', (self.image_width, self.image_height), data, 'raw',
+                                             'RGBA', 0, 1)
+            if image_filter == "Clarendon":
+                pil_image = pilgram.clarendon(pil_image).convert('RGBA')
+            elif image_filter == "Gingham":
+                pil_image = pilgram.gingham(pil_image).convert('RGBA')
+            elif image_filter == "Reyes":
+                pil_image = pilgram.reyes(pil_image).convert('RGBA')
+            elif image_filter == "Mayfair":
+                pil_image = pilgram.mayfair(pil_image).convert('RGBA')
+            else:
+                self.image_width, self.image_height = pil_image.size
+                pixels = pil_image.load()
+                for i in range(self.image_width):
+                    for j in range(self.image_height):
+                        if self.is_saved:
+                            r, g, b = pixels[i, j]
+                        else:
+                            r, g, b, a = pixels[i, j]
+                        if image_filter == "Only red":
+                            g, b = 0, 0
+                        elif image_filter == "Only green":
+                            r, b = 0, 0
+                        elif image_filter == "Only blue":
+                            r, g = 0, 0
+                        elif image_filter == "Red and green":
+                            b = 0
+                        elif image_filter == "Red and blue":
+                            g = 0
+                        elif image_filter == "Green and blue":
+                            r = 0
+                        elif image_filter == "Negative":
+                            r = 255 - r
+                            g = 255 - g
+                            b = 255 - b
+                        elif image_filter == "Black and white":
+                            middle_color = (r + g + b) // 3
+                            r = middle_color
+                            g = middle_color
+                            b = middle_color
+                        if self.is_saved:
+                            pil_image.putpixel((i, j), (r, g, b))
+                        else:
+                            pil_image.putpixel((i, j), (r, g, b, a))
+
+            image_qt_image = ImageQt(pil_image)
+            pixmap = QPixmap.fromImage(image_qt_image).scaled(620, 470, Qt.KeepAspectRatio)
+            self.image.setPixmap(pixmap)
+
     # TODO
     pass
 
@@ -294,5 +372,4 @@ if __name__ == '__main__':
     windows.setWindowIcon(QIcon('designs/icons/window_icon.jpg'))
 
     windows.show()
-
     sys.exit(app.exec_())

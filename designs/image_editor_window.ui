@@ -209,7 +209,7 @@
      <string>Oval</string>
     </property>
    </widget>
-   <widget class="QComboBox" name="comboBox">
+   <widget class="QComboBox" name="filter_combo_box">
     <property name="geometry">
      <rect>
       <x>10</x>
@@ -227,6 +227,66 @@
     <item>
      <property name="text">
       <string>Original</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Clarendon</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Gingham</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Reyes</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Mayfair</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Only red</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Only green</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Only blue</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Red and green</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Red and blue</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Green and blue</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Negative</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Black and white</string>
      </property>
     </item>
    </widget>
