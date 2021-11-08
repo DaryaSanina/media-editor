@@ -209,6 +209,19 @@ class ChooseImageSizeDialog(QDialog):
         super(ChooseImageSizeDialog, self).__init__()
         uic.loadUi('designs/choose_size_dialog.ui', self)
 
+        self.unit_combo_box.currentTextChanged.connect(self.set_default_width_and_height)
+
+    def set_default_width_and_height(self):
+        if self.sender().currentText() == "in":
+            self.width_spin_box.setValue(7)
+            self.height_spin_box.setValue(5)
+        elif self.sender().currentText() == "px":
+            self.width_spin_box.setValue(2100)
+            self.height_spin_box.setValue(1500)
+        elif self.sender().currentText() == "cm":
+            self.width_spin_box.setValue(18)
+            self.height_spin_box.setValue(13)
+
 
 class ImageEditingWindow(QMainWindow):
     def __init__(self):
