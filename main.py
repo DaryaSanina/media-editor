@@ -284,15 +284,19 @@ class ImageEditingWindow(QMainWindow):
 
     def change_filter(self, image_filter: str) -> None:
         if image_filter == "Original":
+            # Removing all the applied filters from the image
             self.image.setPixmap(self.pixmap_without_filters)
         else:
             if self.is_saved:
                 pil_image = Image.open(filename)
             else:
+                # Converting the opened QPixmap image to PIL Image format
                 image_qt_image = self.image.pixmap().toImage()
                 data = image_qt_image.constBits().asstring(image_qt_image.byteCount())
-                pil_image = Image.frombuffer('RGBA', (self.image_width, self.image_height), data, 'raw',
-                                             'RGBA', 0, 1)
+                pil_image = Image.frombuffer('RGBA', (self.image_width, self.image_height), data,
+                                             'raw', 'RGBA', 0, 1)
+
+            # Applying the chosen filter
             if image_filter == "Clarendon":
                 pil_image = pilgram.clarendon(pil_image).convert('RGBA')
             elif image_filter == "Gingham":
@@ -302,40 +306,60 @@ class ImageEditingWindow(QMainWindow):
             elif image_filter == "Mayfair":
                 pil_image = pilgram.mayfair(pil_image).convert('RGBA')
             else:
+                # If the filter is not from Instagram
                 self.image_width, self.image_height = pil_image.size
+
+                # For each pixel getting its red, green and blue component if the mode is 'RGB'
+                # and red, green, blue and alpha component if the mode is 'RGBA'
                 pixels = pil_image.load()
+
                 for i in range(self.image_width):
                     for j in range(self.image_height):
                         if self.is_saved:
+                            # The mode is 'RGB', getting the pixel's red, green and blue component
                             r, g, b = pixels[i, j]
                         else:
+                            # The mode is 'RGBA', getting the pixel's red, green, blue
+                            # and alpha component
                             r, g, b, a = pixels[i, j]
                         if image_filter == "Only red":
+                            # Leaving only red pixel's component
                             g, b = 0, 0
                         elif image_filter == "Only green":
+                            # Leaving only green pixel's component
                             r, b = 0, 0
                         elif image_filter == "Only blue":
+                            # Leaving only blue pixel's component
                             r, g = 0, 0
                         elif image_filter == "Red and green":
+                            # Leaving only red and green pixel's components
                             b = 0
                         elif image_filter == "Red and blue":
+                            # Leaving only red and blue pixel's components
                             g = 0
                         elif image_filter == "Green and blue":
+                            # Leaving only green and blue pixel's components
                             r = 0
                         elif image_filter == "Negative":
+                            # Inverting red, green and blue pixel's components
                             r = 255 - r
                             g = 255 - g
                             b = 255 - b
                         elif image_filter == "Black and white":
+                            # Setting red, green and blue pixel's components to their middle value
                             middle_color = (r + g + b) // 3
                             r = middle_color
                             g = middle_color
                             b = middle_color
+
+                        # Updating the pixel
                         if self.is_saved:
                             pil_image.putpixel((i, j), (r, g, b))
                         else:
                             pil_image.putpixel((i, j), (r, g, b, a))
 
+            # Converting the updated PIL Image image to QPixmap format
+            # and applying it to the image label
             image_qt_image = ImageQt(pil_image)
             pixmap = QPixmap.fromImage(image_qt_image).scaled(620, 470, Qt.KeepAspectRatio)
             self.image.setPixmap(pixmap)
