@@ -97,7 +97,7 @@
      <string>Crop</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_10">
+   <widget class="QPushButton" name="select_btn">
     <property name="geometry">
      <rect>
       <x>90</x>
@@ -111,6 +111,9 @@
     </property>
     <property name="text">
      <string>Select</string>
+    </property>
+    <property name="checkable">
+     <bool>true</bool>
     </property>
    </widget>
    <widget class="QPushButton" name="pushButton_11">
@@ -395,7 +398,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>800</width>
+     <width>802</width>
      <height>18</height>
     </rect>
    </property>

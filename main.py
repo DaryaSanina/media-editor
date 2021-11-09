@@ -5,10 +5,10 @@ from PIL.ImageQt import ImageQt
 import pilgram
 
 from PyQt5 import uic
-from PyQt5.QtGui import QPixmap, QFont, QKeyEvent, QIcon, QPainter, QPaintEvent
+from PyQt5.QtGui import QPixmap, QFont, QKeyEvent, QIcon, QPainter, QPaintEvent, QMouseEvent
 from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QInputDialog, QFileDialog, QMessageBox
-from PyQt5.QtWidgets import QStackedWidget, QDialog
-from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QStackedWidget, QDialog, QRubberBand
+from PyQt5.QtCore import Qt, QRect, QSize
 
 HTML_EXTENSIONS = ['.htm', '.html']
 TEXT_EXTENSIONS = ['.txt']
@@ -240,6 +240,9 @@ class ImageEditingWindow(QMainWindow):
 
         self.pixmap_without_filters = None
 
+        self.rubber_band = None
+        self.rubber_band_origin = None
+
         self.new_btn.clicked.connect(self.new)
         self.open_btn.clicked.connect(self.open)
         self.save_btn.clicked.connect(self.save)
@@ -330,6 +333,28 @@ class ImageEditingWindow(QMainWindow):
             filename = new_filename
             extension = filename[filename.rfind('.')::][1::].upper()
             self.image.pixmap().save(filename, extension)
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:
+        if self.select_btn.isChecked() and event.button() == Qt.LeftButton:
+            if 170 <= event.pos().x() <= 170 + self.image_height \
+                    and 80 <= event.pos().y() <= 80 + self.image_height:
+                self.rubber_band_origin = event.pos()
+                if self.rubber_band is None:
+                    self.rubber_band = QRubberBand(QRubberBand.Rectangle, self)
+                self.rubber_band.setGeometry(QRect(self.rubber_band_origin, QSize()))
+                self.rubber_band.show()
+
+    def mouseMoveEvent(self, event: QMouseEvent) -> None:
+        if self.rubber_band_origin is not None \
+                and 170 <= event.pos().x() <= 170 + self.image_height \
+                and 80 <= event.pos().y() <= 80 + self.image_height:
+            # If the left button of the mouse was pressed inside the image
+            # and the cursor is inside the image:
+            self.rubber_band.setGeometry(QRect(self.rubber_band_origin, event.pos()).normalized())
+
+    def mouseReleaseEvent(self, event: QMouseEvent) -> None:
+        if self.rubber_band is not None:
+            self.rubber_band.hide()
 
     def paintEvent(self, event: QPaintEvent) -> None:
         self.image.resize(620, 470)
@@ -431,6 +456,8 @@ class ImageEditingWindow(QMainWindow):
             # and applying it to the image label
             image_qt_image = ImageQt(pil_image)
             pixmap = QPixmap.fromImage(image_qt_image).scaled(620, 470, Qt.KeepAspectRatio)
+            self.image_width = pixmap.width()
+            self.image_height = pixmap.height()
             self.image.setPixmap(pixmap)
 
     # TODO
