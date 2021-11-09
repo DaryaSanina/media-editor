@@ -138,7 +138,7 @@ class TextEditingWindow(QMainWindow):
     def save(self) -> None:
         global filename
 
-        if filename == '':
+        if not filename:
             # If the file is new, asking the user for the filename
             filename = QFileDialog.getSaveFileName(self, 'Save file', '')[0]
         with open(filename, 'w', encoding='utf-8') as dest_file:
@@ -194,7 +194,7 @@ class TextEditingWindow(QMainWindow):
             self.text_edit.setFontUnderline(False)
 
     def set_strikeout(self) -> None:
-        # Strikeouting the text if the "strikeout_btn" is checked, else making it not stroke out
+        # Striking out the text if the "strikeout_btn" is checked, else making it not stroke out
         font = self.text_edit.currentFont()
         if self.sender().isChecked():
             font.setStrikeOut(True)
@@ -295,32 +295,39 @@ class ImageEditingWindow(QMainWindow):
         global filename
 
         # Getting the filename
-        filename = QFileDialog.getOpenFileName(self, 'Choose file', '')[0]
+        new_filename = QFileDialog.getOpenFileName(self, 'Choose file', '')[0]
 
-        # Displaying the image from the opened file
-        image_editing_window.image.setPixmap(QPixmap(filename)
-                                             .scaled(620, 470, Qt.KeepAspectRatio))
-        image_editing_window.is_saved = True
+        if new_filename:
+            # If the user didn't click "Cancel", displaying the image from the opened file
+            filename = new_filename
+            image_editing_window.image.setPixmap(QPixmap(filename)
+                                                 .scaled(620, 470, Qt.KeepAspectRatio))
+            image_editing_window.is_saved = True
 
     def save(self) -> None:
         global filename
 
-        if filename == '':
+        if not filename:
             # If the file is new, asking the user for the filename
-            filename = QFileDialog.getSaveFileName(self, 'Save file', '')[0]
+            new_filename = QFileDialog.getSaveFileName(self, 'Save the file', '')[0]
+            if new_filename:
+                # If the user didn't click "Cancel":
+                filename = new_filename
+                extension = filename[filename.rfind('.')::][1::].upper()
+                self.image.pixmap().save(filename, extension)
 
-        if filename != '':
-            # If the user didn't click "Cancel":
+        else:
             extension = filename[filename.rfind('.')::][1::].upper()
             self.image.pixmap().save(filename, extension)
 
     def save_as(self) -> None:
         global filename
 
-        filename = QFileDialog.getSaveFileName(self, 'Save file', '')[0]
+        new_filename = QFileDialog.getSaveFileName(self, 'Save the file', '')[0]
 
-        if filename != '':
+        if new_filename:
             # If the user didn't click "Cancel":
+            filename = new_filename
             extension = filename[filename.rfind('.')::][1::].upper()
             self.image.pixmap().save(filename, extension)
 
