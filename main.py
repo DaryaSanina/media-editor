@@ -8,7 +8,7 @@ from PyQt5 import uic
 from PyQt5.QtGui import QPixmap, QFont, QKeyEvent, QIcon, QPainter, QPaintEvent, QMouseEvent
 from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QInputDialog, QFileDialog, QMessageBox
 from PyQt5.QtWidgets import QStackedWidget, QDialog, QRubberBand
-from PyQt5.QtCore import Qt, QRect, QSize
+from PyQt5.QtCore import Qt, QRect, QSize, QPoint, QObject, QEvent
 
 HTML_EXTENSIONS = ['.htm', '.html']
 TEXT_EXTENSIONS = ['.txt']
@@ -318,10 +318,12 @@ class ImageEditingWindow(QMainWindow):
                 filename = new_filename
                 extension = filename[filename.rfind('.')::][1::].upper()
                 self.image.pixmap().save(filename, extension)
+                self.is_saved = True
 
         else:
             extension = filename[filename.rfind('.')::][1::].upper()
             self.image.pixmap().save(filename, extension)
+            self.is_saved = True
 
     def save_as(self) -> None:
         global filename
@@ -333,9 +335,12 @@ class ImageEditingWindow(QMainWindow):
             filename = new_filename
             extension = filename[filename.rfind('.')::][1::].upper()
             self.image.pixmap().save(filename, extension)
+            self.is_saved = True
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
-        if self.select_btn.isChecked() and event.button() == Qt.LeftButton:
+        if ((self.select_btn.isChecked() and not self.crop_btn.isChecked())
+            or (self.crop_btn.isChecked() and not self.select_btn.isChecked())) \
+                and event.button() == Qt.LeftButton:
             if 170 <= event.pos().x() <= 170 + self.image_height \
                     and 80 <= event.pos().y() <= 80 + self.image_height:
                 self.rubber_band_origin = event.pos()
@@ -345,20 +350,46 @@ class ImageEditingWindow(QMainWindow):
                 self.rubber_band.show()
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
-        if self.rubber_band_origin is not None \
-                and 170 <= event.pos().x() <= 170 + self.image_height \
-                and 80 <= event.pos().y() <= 80 + self.image_height:
-            # If the left button of the mouse was pressed inside the image
-            # and the cursor is inside the image:
-            self.rubber_band.setGeometry(QRect(self.rubber_band_origin, event.pos()).normalized())
+        if self.rubber_band_origin is not None:
+            # If the left button of the mouse was pressed inside the image,
+            # selecting the part of the image that the user wants to select
+
+            selection_horizontal_end_point = event.pos().x()
+            if selection_horizontal_end_point < 170:
+                selection_horizontal_end_point = 170
+            elif selection_horizontal_end_point > 170 + self.image_width:
+                selection_horizontal_end_point = 170 + self.image_width
+
+            selection_vertical_end_point = event.pos().y()
+            if selection_vertical_end_point < 80:
+                selection_vertical_end_point = 80
+            elif selection_vertical_end_point > 80 + self.image_height:
+                selection_vertical_end_point = 80 + self.image_height
+
+            self.rubber_band.setGeometry(QRect(self.rubber_band_origin,
+                                               QPoint(selection_horizontal_end_point,
+                                                      selection_vertical_end_point)).normalized())
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
-        if self.rubber_band is not None:
+        if self.select_btn.isChecked() and self.rubber_band is not None:
+            self.rubber_band.hide()
+        elif self.crop_btn.isChecked() and self.rubber_band is not None:
+            selection_q_rect = self.rubber_band.geometry()
+            selection_q_rect.setX(selection_q_rect.x() - 170)
+            selection_q_rect.setY(selection_q_rect.y() - 80)
+            selection_q_rect.setWidth(selection_q_rect.width() - 170)
+            selection_q_rect.setHeight(selection_q_rect.height() - 80)
+            self.image.setPixmap(self.image.pixmap().copy(selection_q_rect)
+                                 .scaled(620, 470, Qt.KeepAspectRatio))
+            self.pixmap_without_filters = self.image.pixmap()
+            self.image_width = self.image.pixmap().width()
+            self.image_height = self.image.pixmap().height()
+            self.is_saved = False
             self.rubber_band.hide()
 
     def paintEvent(self, event: QPaintEvent) -> None:
         self.image.resize(620, 470)
-        if self.is_saved:
+        if self.image.pixmap() is not None:
             # If the user has opened an image:
             self.image_width = self.image.pixmap().width()
             self.image_height = self.image.pixmap().height()
@@ -454,6 +485,7 @@ class ImageEditingWindow(QMainWindow):
 
             # Converting the updated PIL Image image to QPixmap format
             # and applying it to the image label
+            pil_image = pil_image.convert('RGBA')
             image_qt_image = ImageQt(pil_image)
             pixmap = QPixmap.fromImage(image_qt_image).scaled(620, 470, Qt.KeepAspectRatio)
             self.image_width = pixmap.width()
@@ -492,4 +524,5 @@ if __name__ == '__main__':
     windows.setWindowIcon(QIcon('designs/icons/window_icon.jpg'))
 
     windows.show()
+    app.installEventFilter(image_editing_window)
     sys.exit(app.exec_())
