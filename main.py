@@ -341,12 +341,19 @@ class ImageEditingWindow(QMainWindow):
         if ((self.select_btn.isChecked() and not self.crop_btn.isChecked())
             or (self.crop_btn.isChecked() and not self.select_btn.isChecked())) \
                 and event.button() == Qt.LeftButton:
+            # If only one of the buttons "Crop" and "Select" is checked,
+            # start creating the rubber band
             if 170 <= event.pos().x() <= 170 + self.image_height \
                     and 80 <= event.pos().y() <= 80 + self.image_height:
-                self.rubber_band_origin = event.pos()
+                # If the user has clicked inside the image:
                 if self.rubber_band is None:
+                    # If the selection is for the first time, creating a new rubber band:
                     self.rubber_band = QRubberBand(QRubberBand.Rectangle, self)
+
+                # Setting the origin of the rubber band to the position of the cursor
+                self.rubber_band_origin = event.pos()
                 self.rubber_band.setGeometry(QRect(self.rubber_band_origin, QSize()))
+
                 self.rubber_band.show()
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
@@ -355,36 +362,49 @@ class ImageEditingWindow(QMainWindow):
             # selecting the part of the image that the user wants to select
 
             selection_horizontal_end_point = event.pos().x()
+            # If the cursor is outside the image, setting selection_horizontal_end_point
+            # to the nearest to the cursor possible spot
             if selection_horizontal_end_point < 170:
                 selection_horizontal_end_point = 170
             elif selection_horizontal_end_point > 170 + self.image_width:
                 selection_horizontal_end_point = 170 + self.image_width
 
             selection_vertical_end_point = event.pos().y()
+            # If the cursor is outside the image, setting selection_vertical_end_point
+            # to the nearest to the cursor possible spot
             if selection_vertical_end_point < 80:
                 selection_vertical_end_point = 80
             elif selection_vertical_end_point > 80 + self.image_height:
                 selection_vertical_end_point = 80 + self.image_height
 
+            # Updating the rubber band
             self.rubber_band.setGeometry(QRect(self.rubber_band_origin,
                                                QPoint(selection_horizontal_end_point,
                                                       selection_vertical_end_point)).normalized())
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
         if self.select_btn.isChecked() and self.rubber_band is not None:
+            # If the user is selecting a part of an image:
             self.rubber_band.hide()
         elif self.crop_btn.isChecked() and self.rubber_band is not None:
+            # If the user is cropping the image:
+
+            # Getting the selected part of the image as a QRect
             selection_q_rect = self.rubber_band.geometry()
             selection_q_rect.setX(selection_q_rect.x() - 170)
             selection_q_rect.setY(selection_q_rect.y() - 80)
             selection_q_rect.setWidth(selection_q_rect.width() - 170)
             selection_q_rect.setHeight(selection_q_rect.height() - 80)
+
+            # Updating the image
             self.image.setPixmap(self.image.pixmap().copy(selection_q_rect)
                                  .scaled(620, 470, Qt.KeepAspectRatio))
             self.pixmap_without_filters = self.image.pixmap()
             self.image_width = self.image.pixmap().width()
             self.image_height = self.image.pixmap().height()
+
             self.is_saved = False
+
             self.rubber_band.hide()
 
     def paintEvent(self, event: QPaintEvent) -> None:
