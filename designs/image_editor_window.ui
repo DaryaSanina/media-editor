@@ -368,7 +368,7 @@
      <double>5.000000000000000</double>
     </property>
    </widget>
-   <widget class="QDoubleSpinBox" name="doubleSpinBox_2">
+   <widget class="QDoubleSpinBox" name="brush_opacity_spin_box">
     <property name="geometry">
      <rect>
       <x>90</x>

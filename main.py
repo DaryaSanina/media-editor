@@ -250,12 +250,13 @@ class ImageEditingWindow(QMainWindow):
         self.save_as_btn.clicked.connect(self.save_as)
         self.filter_combo_box.currentTextChanged.connect(self.change_filter)
         self.brush_size_spin_box.valueChanged.connect(self.change_brush_size)
+        self.brush_opacity_spin_box.valueChanged.connect(self.change_brush_opacity)
         self.change_color_btn.clicked.connect(self.change_brush_color)
 
         self.is_drawing = False
         self.last_pen_point = QPoint()
         self.brush_size = 5
-        self.brush_color = Qt.black
+        self.brush_color = QColor(0, 0, 0, 255)
 
     def new(self) -> None:
         # Creating a dialog
@@ -538,13 +539,18 @@ class ImageEditingWindow(QMainWindow):
             self.image_height = pixmap.height()
             self.image.setPixmap(pixmap)
 
-    def change_brush_size(self, value: float):
-        self.brush_size = value
+    def change_brush_size(self, size: float) -> None:
+        self.brush_size = size
 
-    def change_brush_color(self):
+    def change_brush_opacity(self, opacity_percent: float) -> None:
+        self.brush_color.setAlpha(int(250 * (opacity_percent / 100)))
+
+    def change_brush_color(self) -> None:
         color = QColorDialog().getColor(self.brush_color)
         if color.isValid():
             self.brush_color = color
+
+            # Change the background color of the color changing button (change_color_btn)
             self.sender().setStyleSheet(f"background-color: {color.name()}")
 
     # TODO
