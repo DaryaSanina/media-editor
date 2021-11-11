@@ -254,9 +254,10 @@ class ImageEditingWindow(QMainWindow):
         self.change_color_btn.clicked.connect(self.change_brush_color)
 
         self.is_drawing = False
+        self.is_erasing = False
         self.last_pen_point = QPoint()
         self.brush_size = 5
-        self.brush_color = QColor(0, 0, 0, 255)
+        self.brush_color = QColor(0, 0, 0, 255)   # (0, 0, 0, 255) is black color
 
     def new(self) -> None:
         # Creating a dialog
@@ -347,10 +348,7 @@ class ImageEditingWindow(QMainWindow):
             self.is_saved = True
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
-        if ((self.select_btn.isChecked() and not self.crop_btn.isChecked()
-             and not self.brush_btn.isChecked())
-            or (self.crop_btn.isChecked() and not self.select_btn.isChecked()
-                and not self.brush_btn.isChecked())) \
+        if (self.select_btn.isChecked() or self.crop_btn.isChecked()) \
                 and event.button() == Qt.LeftButton:
             # If only button "Crop" or "Select" is checked,
             # start creating the rubber band
@@ -367,13 +365,15 @@ class ImageEditingWindow(QMainWindow):
 
                 self.rubber_band.show()
 
-        elif self.brush_btn.isChecked() and not self.select_btn.isChecked() \
-                and not self.crop_btn.isChecked() and event.button() == Qt.LeftButton:
+        elif self.brush_btn.isChecked() and event.button() == Qt.LeftButton:
             self.is_drawing = True
+            self.last_pen_point = QPoint(event.pos().x() - 170, event.pos().y() - 80)
+        elif self.eraser_btn.isChecked() and event.button() == Qt.LeftButton:
+            self.is_erasing = True
             self.last_pen_point = QPoint(event.pos().x() - 170, event.pos().y() - 80)
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
-        if not self.is_drawing and self.rubber_band_origin is not None:
+        if not self.is_drawing and not self.is_erasing and self.rubber_band_origin is not None:
             # If the left button of the mouse was pressed inside the image,
             # selecting the part of the image that the user wants to select
 
@@ -398,10 +398,14 @@ class ImageEditingWindow(QMainWindow):
                                                QPoint(selection_horizontal_end_point,
                                                       selection_vertical_end_point)).normalized())
 
-        elif self.is_drawing:
+        elif self.is_drawing or self.is_erasing:
             # Creating a QPainter object with the opened image
             painter = QPainter(self.image.pixmap())
-            painter.setPen(QPen(self.brush_color, self.brush_size, Qt.SolidLine, Qt.RoundCap,
+            if self.is_drawing:
+                color = self.brush_color
+            else:  # if self.is_erasing
+                color = QColor(255, 255, 255, 255)  # (255, 255, 255, 255) is white color
+            painter.setPen(QPen(color, self.brush_size, Qt.SolidLine, Qt.RoundCap,
                                 Qt.RoundJoin))
             painter.drawLine(self.last_pen_point,
                              QPoint(event.pos().x() - 170, event.pos().y() - 80))
@@ -436,6 +440,8 @@ class ImageEditingWindow(QMainWindow):
 
         elif self.is_drawing:
             self.is_drawing = False
+        elif self.is_erasing:
+            self.is_erasing = False
 
     def paintEvent(self, event: QPaintEvent) -> None:
         self.image.resize(620, 470)

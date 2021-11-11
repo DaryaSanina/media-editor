@@ -99,6 +99,9 @@
     <property name="checkable">
      <bool>true</bool>
     </property>
+    <property name="autoExclusive">
+     <bool>true</bool>
+    </property>
    </widget>
    <widget class="QPushButton" name="select_btn">
     <property name="geometry">
@@ -116,6 +119,9 @@
      <string>Select</string>
     </property>
     <property name="checkable">
+     <bool>true</bool>
+    </property>
+    <property name="autoExclusive">
      <bool>true</bool>
     </property>
    </widget>
@@ -137,6 +143,9 @@
     <property name="checkable">
      <bool>true</bool>
     </property>
+    <property name="autoExclusive">
+     <bool>true</bool>
+    </property>
    </widget>
    <widget class="QPushButton" name="change_color_btn">
     <property name="geometry">
@@ -154,7 +163,7 @@
      <string/>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_15">
+   <widget class="QPushButton" name="eraser_btn">
     <property name="geometry">
      <rect>
       <x>10</x>
@@ -168,6 +177,12 @@
     </property>
     <property name="text">
      <string>Eraser</string>
+    </property>
+    <property name="checkable">
+     <bool>true</bool>
+    </property>
+    <property name="autoExclusive">
+     <bool>true</bool>
     </property>
    </widget>
    <widget class="QPushButton" name="pushButton_16">
