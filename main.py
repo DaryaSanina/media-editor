@@ -5,10 +5,10 @@ from PIL.ImageQt import ImageQt
 import pilgram
 
 from PyQt5 import uic
-from PyQt5.QtGui import QPixmap, QFont, QKeyEvent, QIcon, QPainter, QPaintEvent, QMouseEvent
+from PyQt5.QtGui import QPixmap, QFont, QKeyEvent, QIcon, QPainter, QPaintEvent, QMouseEvent, QPen
 from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QInputDialog, QFileDialog, QMessageBox
 from PyQt5.QtWidgets import QStackedWidget, QDialog, QRubberBand
-from PyQt5.QtCore import Qt, QRect, QSize, QPoint, QObject, QEvent
+from PyQt5.QtCore import Qt, QRect, QSize, QPoint
 
 HTML_EXTENSIONS = ['.htm', '.html']
 TEXT_EXTENSIONS = ['.txt']
@@ -241,13 +241,19 @@ class ImageEditingWindow(QMainWindow):
         self.pixmap_without_filters = None
 
         self.rubber_band = None
-        self.rubber_band_origin = None
+        self.rubber_band_origin = QPoint()
 
         self.new_btn.clicked.connect(self.new)
         self.open_btn.clicked.connect(self.open)
         self.save_btn.clicked.connect(self.save)
         self.save_as_btn.clicked.connect(self.save_as)
         self.filter_combo_box.currentTextChanged.connect(self.change_filter)
+        self.brush_size_spin_box.valueChanged.connect(self.change_brush_size)
+
+        self.is_drawing = False
+        self.last_pen_point = QPoint()
+        self.brush_size = 5
+        self.brush_color = Qt.black
 
     def new(self) -> None:
         # Creating a dialog
@@ -338,10 +344,12 @@ class ImageEditingWindow(QMainWindow):
             self.is_saved = True
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
-        if ((self.select_btn.isChecked() and not self.crop_btn.isChecked())
-            or (self.crop_btn.isChecked() and not self.select_btn.isChecked())) \
+        if ((self.select_btn.isChecked() and not self.crop_btn.isChecked()
+             and not self.brush_btn.isChecked())
+            or (self.crop_btn.isChecked() and not self.select_btn.isChecked()
+                and not self.brush_btn.isChecked())) \
                 and event.button() == Qt.LeftButton:
-            # If only one of the buttons "Crop" and "Select" is checked,
+            # If only button "Crop" or "Select" is checked,
             # start creating the rubber band
             if 170 <= event.pos().x() <= 170 + self.image_height \
                     and 80 <= event.pos().y() <= 80 + self.image_height:
@@ -356,8 +364,13 @@ class ImageEditingWindow(QMainWindow):
 
                 self.rubber_band.show()
 
+        elif self.brush_btn.isChecked() and not self.select_btn.isChecked() \
+                and not self.crop_btn.isChecked() and event.button() == Qt.LeftButton:
+            self.is_drawing = True
+            self.last_pen_point = QPoint(event.pos().x() - 170, event.pos().y() - 80)
+
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
-        if self.rubber_band_origin is not None:
+        if not self.is_drawing and self.rubber_band_origin is not None:
             # If the left button of the mouse was pressed inside the image,
             # selecting the part of the image that the user wants to select
 
@@ -382,10 +395,21 @@ class ImageEditingWindow(QMainWindow):
                                                QPoint(selection_horizontal_end_point,
                                                       selection_vertical_end_point)).normalized())
 
+        elif self.is_drawing:
+            # Creating a QPainter object with the opened image
+            painter = QPainter(self.image.pixmap())
+            painter.setPen(QPen(self.brush_color, self.brush_size, Qt.SolidLine, Qt.RoundCap,
+                                Qt.RoundJoin))
+            painter.drawLine(self.last_pen_point,
+                             QPoint(event.pos().x() - 170, event.pos().y() - 80))
+            self.last_pen_point = QPoint(event.pos().x() - 170, event.pos().y() - 80)
+            self.update()
+
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
         if self.select_btn.isChecked() and self.rubber_band is not None:
             # If the user is selecting a part of an image:
             self.rubber_band.hide()
+
         elif self.crop_btn.isChecked() and self.rubber_band is not None:
             # If the user is cropping the image:
 
@@ -407,6 +431,9 @@ class ImageEditingWindow(QMainWindow):
 
             self.rubber_band.hide()
 
+        elif self.is_drawing:
+            self.is_drawing = False
+
     def paintEvent(self, event: QPaintEvent) -> None:
         self.image.resize(620, 470)
         if self.image.pixmap() is not None:
@@ -423,9 +450,6 @@ class ImageEditingWindow(QMainWindow):
 
             self.pixmap_without_filters = QPixmap(self.image_width, self.image_height)
             self.pixmap_without_filters.fill(Qt.white)
-
-        # Creating a QPainter object with the opened image or the new white image
-        painter = QPainter(self.image.pixmap())
 
     def change_filter(self, image_filter: str) -> None:
         if image_filter == "Original":
@@ -511,6 +535,9 @@ class ImageEditingWindow(QMainWindow):
             self.image_width = pixmap.width()
             self.image_height = pixmap.height()
             self.image.setPixmap(pixmap)
+
+    def change_brush_size(self, value: float):
+        self.brush_size = value
 
     # TODO
     pass

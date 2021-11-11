@@ -119,7 +119,7 @@
      <bool>true</bool>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_11">
+   <widget class="QPushButton" name="brush_btn">
     <property name="geometry">
      <rect>
       <x>10</x>
@@ -133,6 +133,9 @@
     </property>
     <property name="text">
      <string>Brush</string>
+    </property>
+    <property name="checkable">
+     <bool>true</bool>
     </property>
    </widget>
    <widget class="QPushButton" name="pushButton_12">
@@ -338,7 +341,7 @@
      <string>Opacity:</string>
     </property>
    </widget>
-   <widget class="QDoubleSpinBox" name="doubleSpinBox">
+   <widget class="QDoubleSpinBox" name="brush_size_spin_box">
     <property name="geometry">
      <rect>
       <x>10</x>
