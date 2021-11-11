@@ -138,7 +138,7 @@
      <bool>true</bool>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_12">
+   <widget class="QPushButton" name="change_color_btn">
     <property name="geometry">
      <rect>
       <x>90</x>
@@ -148,10 +148,10 @@
      </rect>
     </property>
     <property name="styleSheet">
-     <string notr="true">color: white</string>
+     <string notr="true">background-color: black</string>
     </property>
     <property name="text">
-     <string>Color</string>
+     <string/>
     </property>
    </widget>
    <widget class="QPushButton" name="pushButton_15">

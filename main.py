@@ -6,8 +6,9 @@ import pilgram
 
 from PyQt5 import uic
 from PyQt5.QtGui import QPixmap, QFont, QKeyEvent, QIcon, QPainter, QPaintEvent, QMouseEvent, QPen
+from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QInputDialog, QFileDialog, QMessageBox
-from PyQt5.QtWidgets import QStackedWidget, QDialog, QRubberBand
+from PyQt5.QtWidgets import QStackedWidget, QDialog, QRubberBand, QColorDialog
 from PyQt5.QtCore import Qt, QRect, QSize, QPoint
 
 HTML_EXTENSIONS = ['.htm', '.html']
@@ -249,6 +250,7 @@ class ImageEditingWindow(QMainWindow):
         self.save_as_btn.clicked.connect(self.save_as)
         self.filter_combo_box.currentTextChanged.connect(self.change_filter)
         self.brush_size_spin_box.valueChanged.connect(self.change_brush_size)
+        self.change_color_btn.clicked.connect(self.change_brush_color)
 
         self.is_drawing = False
         self.last_pen_point = QPoint()
@@ -538,6 +540,12 @@ class ImageEditingWindow(QMainWindow):
 
     def change_brush_size(self, value: float):
         self.brush_size = value
+
+    def change_brush_color(self):
+        color = QColorDialog().getColor(self.brush_color)
+        if color.isValid():
+            self.brush_color = color
+            self.sender().setStyleSheet(f"background-color: {color.name()}")
 
     # TODO
     pass
