@@ -255,6 +255,7 @@ class ImageEditingWindow(QMainWindow):
 
         self.is_drawing = False
         self.is_erasing = False
+        self.is_drawing_line = False
         self.last_pen_point = QPoint()
         self.brush_size = 5
         self.brush_color = QColor(0, 0, 0, 255)   # (0, 0, 0, 255) is black color
@@ -371,9 +372,13 @@ class ImageEditingWindow(QMainWindow):
         elif self.eraser_btn.isChecked() and event.button() == Qt.LeftButton:
             self.is_erasing = True
             self.last_pen_point = QPoint(event.pos().x() - 170, event.pos().y() - 80)
+        elif self.line_btn.isChecked() and event.button() == Qt.LeftButton:
+            self.is_drawing_line = True
+            self.last_pen_point = QPoint(event.pos().x() - 170, event.pos().y() - 80)
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
-        if not self.is_drawing and not self.is_erasing and self.rubber_band_origin is not None:
+        if not self.is_drawing and not self.is_erasing and not self.is_drawing_line \
+                and self.rubber_band_origin is not None:
             # If the left button of the mouse was pressed inside the image,
             # selecting the part of the image that the user wants to select
 
@@ -442,6 +447,15 @@ class ImageEditingWindow(QMainWindow):
             self.is_drawing = False
         elif self.is_erasing:
             self.is_erasing = False
+        elif self.is_drawing_line:
+            # Creating a QPainter object with the opened image
+            painter = QPainter(self.image.pixmap())
+            painter.setPen(QPen(self.brush_color, self.brush_size, Qt.SolidLine, Qt.RoundCap,
+                                Qt.RoundJoin))
+            painter.drawLine(self.last_pen_point,
+                             QPoint(event.pos().x() - 170, event.pos().y() - 80))
+            self.update()
+            self.is_drawing_line = False
 
     def paintEvent(self, event: QPaintEvent) -> None:
         self.image.resize(620, 470)

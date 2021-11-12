@@ -185,7 +185,7 @@
      <bool>true</bool>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_16">
+   <widget class="QPushButton" name="line_btn">
     <property name="geometry">
      <rect>
       <x>90</x>
@@ -199,6 +199,12 @@
     </property>
     <property name="text">
      <string>Line</string>
+    </property>
+    <property name="checkable">
+     <bool>true</bool>
+    </property>
+    <property name="autoExclusive">
+     <bool>true</bool>
     </property>
    </widget>
    <widget class="QPushButton" name="pushButton_17">
