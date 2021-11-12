@@ -229,7 +229,7 @@
      <bool>true</bool>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_18">
+   <widget class="QPushButton" name="ellipse_btn">
     <property name="geometry">
      <rect>
       <x>90</x>
@@ -242,7 +242,13 @@
      <string notr="true">color: white</string>
     </property>
     <property name="text">
-     <string>Oval</string>
+     <string>Ellipse</string>
+    </property>
+    <property name="checkable">
+     <bool>true</bool>
+    </property>
+    <property name="autoExclusive">
+     <bool>true</bool>
     </property>
    </widget>
    <widget class="QComboBox" name="filter_combo_box">
