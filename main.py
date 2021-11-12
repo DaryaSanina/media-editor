@@ -634,6 +634,8 @@ class AudioEditingWindow(QMainWindow):
         self.player = QMediaPlayer()
 
         self.play_pause_btn.clicked.connect(self.play)
+        self.stop_btn.clicked.connect(self.stop)
+
         self.is_playing = False
         self.is_paused = False
 
@@ -646,6 +648,11 @@ class AudioEditingWindow(QMainWindow):
             self.player.play()
             self.is_playing = True
             self.is_paused = False
+
+    def stop(self):
+        self.player.stop()
+        self.is_playing = False
+        self.is_paused = False
     # TODO
     pass
 
