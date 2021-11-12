@@ -207,7 +207,7 @@
      <bool>true</bool>
     </property>
    </widget>
-   <widget class="QPushButton" name="pushButton_17">
+   <widget class="QPushButton" name="rectangle_btn">
     <property name="geometry">
      <rect>
       <x>10</x>
@@ -221,6 +221,12 @@
     </property>
     <property name="text">
      <string>Rectangle</string>
+    </property>
+    <property name="checkable">
+     <bool>true</bool>
+    </property>
+    <property name="autoExclusive">
+     <bool>true</bool>
     </property>
    </widget>
    <widget class="QPushButton" name="pushButton_18">
