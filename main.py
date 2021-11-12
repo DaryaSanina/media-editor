@@ -636,6 +636,7 @@ class AudioEditingWindow(QMainWindow):
         self.play_pause_btn.clicked.connect(self.play)
         self.stop_btn.clicked.connect(self.stop)
         self.rewind_slider.valueChanged.connect(self.rewind)
+        self.volume_slider.valueChanged.connect(self.change_volume)
 
         self.is_playing = False
         self.is_paused = False
@@ -648,9 +649,13 @@ class AudioEditingWindow(QMainWindow):
 
     def stop(self) -> None:
         self.player.stop()
+        self.rewind_slider.setValue(0)
 
-    def rewind(self, slider_position: int) -> None:
-        self.player.setPosition(int(self.player.duration() * (slider_position / 100)))
+    def rewind(self, rewind_slider_position: int) -> None:
+        self.player.setPosition(int(self.player.duration() * (rewind_slider_position / 100)))
+
+    def change_volume(self, volume_slider_position: int) -> None:
+        self.player.setVolume(volume_slider_position)
     # TODO
     pass
 

@@ -85,7 +85,7 @@
      <string>Open</string>
     </property>
    </widget>
-   <widget class="QSlider" name="verticalSlider">
+   <widget class="QSlider" name="volume_slider">
     <property name="geometry">
      <rect>
       <x>80</x>
