@@ -9,7 +9,8 @@ from PyQt5.QtGui import QPixmap, QFont, QKeyEvent, QIcon, QPainter, QPaintEvent,
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QInputDialog, QFileDialog, QMessageBox
 from PyQt5.QtWidgets import QStackedWidget, QDialog, QRubberBand, QColorDialog
-from PyQt5.QtCore import Qt, QRect, QSize, QPoint
+from PyQt5.QtCore import Qt, QRect, QSize, QPoint, QUrl
+from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 
 HTML_EXTENSIONS = ['.htm', '.html']
 TEXT_EXTENSIONS = ['.txt']
@@ -59,6 +60,7 @@ class MainWindow(QMainWindow):
                                          "Do you want to edit a text document?",
                                          QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
             windows.setCurrentIndex(1)
+
             # Reading the text from the file
             with open(filename, 'r', encoding='utf-8') as source_file:
                 text_editing_window.text_edit.setText(source_file.read())
@@ -67,6 +69,7 @@ class MainWindow(QMainWindow):
                 and QMessageBox.question(self, 'File type guess', "Do you want to edit an image?",
                                          QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
             windows.setCurrentIndex(2)
+
             # Displaying the image from the opened file
             image_editing_window.image.setPixmap(QPixmap(filename)
                                                  .scaled(620, 470, Qt.KeepAspectRatio))
@@ -76,6 +79,11 @@ class MainWindow(QMainWindow):
                                          "Do you want to edit an audio file?",
                                          QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
             windows.setCurrentIndex(3)
+
+            # Loading the audio
+            url = QUrl.fromLocalFile(filename)
+            content = QMediaContent(url)
+            audio_editing_window.player.setMedia(content)
 
         elif extension != '':
             # If the guess isn't correct,
@@ -89,12 +97,14 @@ class MainWindow(QMainWindow):
             if ok_pressed:
                 if file_type == "Text":
                     windows.setCurrentIndex(1)
+
                     # Reading the text from the file
                     with open(filename, 'r', encoding='utf-8') as source_file:
                         text_editing_window.text_edit.setText(source_file.read())
 
                 elif file_type == "Image":
                     windows.setCurrentIndex(2)
+
                     # Displaying the image from the opened file
                     image_editing_window.image.setPixmap(QPixmap(filename)
                                                          .scaled(620, 470, Qt.KeepAspectRatio))
@@ -102,6 +112,11 @@ class MainWindow(QMainWindow):
 
                 elif file_type == "Audio":
                     windows.setCurrentIndex(3)
+
+                    # Loading the audio
+                    url = QUrl.fromLocalFile(filename)
+                    content = QMediaContent(url)
+                    audio_editing_window.player.setMedia(content)
 
 
 class TextEditingWindow(QMainWindow):
@@ -455,9 +470,11 @@ class ImageEditingWindow(QMainWindow):
         elif self.is_drawing:
             self.is_drawing = False
             self.is_saved = False
+
         elif self.is_erasing:
             self.is_erasing = False
             self.is_saved = False
+
         elif self.is_drawing_line:
             # Creating a QPainter object with the opened image
             painter = QPainter(self.image.pixmap())
@@ -468,6 +485,7 @@ class ImageEditingWindow(QMainWindow):
             self.update()
             self.is_drawing_line = False
             self.is_saved = False
+
         elif self.is_drawing_rectangle:
             # Creating a QPainter object with the opened image
             painter = QPainter(self.image.pixmap())
@@ -479,6 +497,7 @@ class ImageEditingWindow(QMainWindow):
             self.update()
             self.is_drawing_rectangle = False
             self.is_saved = False
+
         elif self.is_drawing_ellipse:
             # Creating a QPainter object with the opened image
             painter = QPainter(self.image.pixmap())
@@ -607,11 +626,26 @@ class ImageEditingWindow(QMainWindow):
             # Change the background color of the color changing button (change_color_btn)
             self.sender().setStyleSheet(f"background-color: {color.name()}")
 
-    # TODO
-    pass
-
 
 class AudioEditingWindow(QMainWindow):
+    def __init__(self):
+        super(AudioEditingWindow, self).__init__()
+        uic.loadUi('designs/audio_editor_window.ui', self)
+        self.player = QMediaPlayer()
+
+        self.play_pause_btn.clicked.connect(self.play)
+        self.is_playing = False
+        self.is_paused = False
+
+    def play(self):
+        if self.is_playing:
+            self.player.pause()
+            self.is_paused = True
+            self.is_playing = False
+        else:
+            self.player.play()
+            self.is_playing = True
+            self.is_paused = False
     # TODO
     pass
 
