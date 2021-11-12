@@ -635,24 +635,22 @@ class AudioEditingWindow(QMainWindow):
 
         self.play_pause_btn.clicked.connect(self.play)
         self.stop_btn.clicked.connect(self.stop)
+        self.rewind_slider.valueChanged.connect(self.rewind)
 
         self.is_playing = False
         self.is_paused = False
 
-    def play(self):
-        if self.is_playing:
+    def play(self) -> None:
+        if self.player.state() == QMediaPlayer.PlayingState:
             self.player.pause()
-            self.is_paused = True
-            self.is_playing = False
         else:
             self.player.play()
-            self.is_playing = True
-            self.is_paused = False
 
-    def stop(self):
+    def stop(self) -> None:
         self.player.stop()
-        self.is_playing = False
-        self.is_paused = False
+
+    def rewind(self, slider_position: int) -> None:
+        self.player.setPosition(int(self.player.duration() * (slider_position / 100)))
     # TODO
     pass
 
