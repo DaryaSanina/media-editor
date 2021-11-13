@@ -105,35 +105,38 @@ class MainWindow(QMainWindow):
 
             # Opening the editor that the user wants to open
             if ok_pressed:
-                if file_type == "Text":
-                    windows.setCurrentIndex(1)
+                try:
+                    if file_type == "Text":
+                        # Reading the text from the file
+                        with open(filename, 'r', encoding='utf-8') as source_file:
+                            text_editing_window.text_edit.setText(source_file.read())
 
-                    # Reading the text from the file
-                    with open(filename, 'r', encoding='utf-8') as source_file:
-                        text_editing_window.text_edit.setText(source_file.read())
+                        windows.setCurrentIndex(1)
 
-                elif file_type == "Image":
-                    windows.setCurrentIndex(2)
+                    elif file_type == "Image":
+                        # Displaying the image from the opened file
+                        image_editing_window.image.setPixmap(QPixmap(filename)
+                                                             .scaled(620, 470, Qt.KeepAspectRatio))
+                        image_editing_window.is_saved = True
+                        windows.setCurrentIndex(2)
 
-                    # Displaying the image from the opened file
-                    image_editing_window.image.setPixmap(QPixmap(filename)
-                                                         .scaled(620, 470, Qt.KeepAspectRatio))
-                    image_editing_window.is_saved = True
+                    elif file_type == "Audio":
+                        # Loading the audio
+                        url = QUrl.fromLocalFile(filename)
+                        content = QMediaContent(url)
+                        audio_editing_window.player.setMedia(content)
 
-                elif file_type == "Audio":
-                    # Loading the audio
-                    url = QUrl.fromLocalFile(filename)
-                    content = QMediaContent(url)
-                    audio_editing_window.player.setMedia(content)
+                        try:
+                            audio_editing_window.waveform, \
+                                audio_editing_window.sample_rate = librosa.load(filename)
+                            windows.setCurrentIndex(3)
 
-                    try:
-                        audio_editing_window.waveform, \
-                            audio_editing_window.sample_rate = librosa.load(filename)
-                        windows.setCurrentIndex(3)
-
-                    except:
-                        error_message = QErrorMessage(self)
-                        error_message.showMessage("Please install ffmpeg")
+                        except:
+                            error_message = QErrorMessage(self)
+                            error_message.showMessage("Please install ffmpeg")
+                except:
+                    error_message = QErrorMessage(self)
+                    error_message.showMessage("Can't read the file")
 
 
 class TextEditingWindow(QMainWindow):
@@ -446,8 +449,10 @@ class ImageEditingWindow(QMainWindow):
             painter.setPen(QPen(color, self.brush_size, Qt.SolidLine, Qt.RoundCap,
                                 Qt.RoundJoin))
             painter.drawLine(self.last_pen_point,
-                             QPoint(event.pos().x() - 170, event.pos().y() - 80))
-            self.last_pen_point = QPoint(event.pos().x() - 170, event.pos().y() - 80)
+                             QPoint(event.pos().x() - 170,
+                                    event.pos().y() - 80))
+            self.last_pen_point = QPoint(event.pos().x() - 170,
+                                         event.pos().y() - 80)
             self.update()
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
