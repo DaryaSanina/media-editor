@@ -4,12 +4,17 @@ from PIL import Image
 from PIL.ImageQt import ImageQt
 import pilgram
 
+import librosa
+import soundfile as sf
+import numpy as np
+
 from PyQt5 import uic
 from PyQt5.QtGui import QPixmap, QFont, QKeyEvent, QIcon, QPainter, QPaintEvent, QMouseEvent, QPen
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QInputDialog, QFileDialog, QMessageBox
-from PyQt5.QtWidgets import QStackedWidget, QDialog, QRubberBand, QColorDialog
-from PyQt5.QtCore import Qt, QRect, QSize, QPoint
+from PyQt5.QtWidgets import QStackedWidget, QDialog, QRubberBand, QColorDialog, QErrorMessage
+from PyQt5.QtCore import Qt, QRect, QSize, QPoint, QUrl
+from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 
 HTML_EXTENSIONS = ['.htm', '.html']
 TEXT_EXTENSIONS = ['.txt']
@@ -59,6 +64,7 @@ class MainWindow(QMainWindow):
                                          "Do you want to edit a text document?",
                                          QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
             windows.setCurrentIndex(1)
+
             # Reading the text from the file
             with open(filename, 'r', encoding='utf-8') as source_file:
                 text_editing_window.text_edit.setText(source_file.read())
@@ -67,6 +73,7 @@ class MainWindow(QMainWindow):
                 and QMessageBox.question(self, 'File type guess', "Do you want to edit an image?",
                                          QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
             windows.setCurrentIndex(2)
+
             # Displaying the image from the opened file
             image_editing_window.image.setPixmap(QPixmap(filename)
                                                  .scaled(620, 470, Qt.KeepAspectRatio))
@@ -75,7 +82,18 @@ class MainWindow(QMainWindow):
                 and QMessageBox.question(self, 'File type guess',
                                          "Do you want to edit an audio file?",
                                          QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
-            windows.setCurrentIndex(3)
+            # Loading the audio
+            url = QUrl.fromLocalFile(filename)
+            content = QMediaContent(url)
+            audio_editing_window.player.setMedia(content)
+
+            try:
+                audio_editing_window.waveform, \
+                    audio_editing_window.sample_rate = librosa.load(filename)
+                windows.setCurrentIndex(3)
+            except:
+                error_message = QErrorMessage(self)
+                error_message.showMessage("Please install ffmpeg")
 
         elif extension != '':
             # If the guess isn't correct,
@@ -89,19 +107,33 @@ class MainWindow(QMainWindow):
             if ok_pressed:
                 if file_type == "Text":
                     windows.setCurrentIndex(1)
+
                     # Reading the text from the file
                     with open(filename, 'r', encoding='utf-8') as source_file:
                         text_editing_window.text_edit.setText(source_file.read())
 
                 elif file_type == "Image":
                     windows.setCurrentIndex(2)
+
                     # Displaying the image from the opened file
                     image_editing_window.image.setPixmap(QPixmap(filename)
                                                          .scaled(620, 470, Qt.KeepAspectRatio))
                     image_editing_window.is_saved = True
 
                 elif file_type == "Audio":
-                    windows.setCurrentIndex(3)
+                    # Loading the audio
+                    url = QUrl.fromLocalFile(filename)
+                    content = QMediaContent(url)
+                    audio_editing_window.player.setMedia(content)
+
+                    try:
+                        audio_editing_window.waveform, \
+                            audio_editing_window.sample_rate = librosa.load(filename)
+                        windows.setCurrentIndex(3)
+
+                    except:
+                        error_message = QErrorMessage(self)
+                        error_message.showMessage("Please install ffmpeg")
 
 
 class TextEditingWindow(QMainWindow):
@@ -321,17 +353,9 @@ class ImageEditingWindow(QMainWindow):
             image_editing_window.is_saved = True
 
     def save(self) -> None:
-        global filename
-
         if not filename:
-            # If the file is new, asking the user for the filename
-            new_filename = QFileDialog.getSaveFileName(self, 'Save the file', '')[0]
-            if new_filename:
-                # If the user didn't click "Cancel":
-                filename = new_filename
-                extension = filename[filename.rfind('.')::][1::].upper()
-                self.image.pixmap().save(filename, extension)
-                self.is_saved = True
+            # If the file is new:
+            self.save_as()
 
         else:
             extension = filename[filename.rfind('.')::][1::].upper()
@@ -455,9 +479,11 @@ class ImageEditingWindow(QMainWindow):
         elif self.is_drawing:
             self.is_drawing = False
             self.is_saved = False
+
         elif self.is_erasing:
             self.is_erasing = False
             self.is_saved = False
+
         elif self.is_drawing_line:
             # Creating a QPainter object with the opened image
             painter = QPainter(self.image.pixmap())
@@ -468,6 +494,7 @@ class ImageEditingWindow(QMainWindow):
             self.update()
             self.is_drawing_line = False
             self.is_saved = False
+
         elif self.is_drawing_rectangle:
             # Creating a QPainter object with the opened image
             painter = QPainter(self.image.pixmap())
@@ -479,6 +506,7 @@ class ImageEditingWindow(QMainWindow):
             self.update()
             self.is_drawing_rectangle = False
             self.is_saved = False
+
         elif self.is_drawing_ellipse:
             # Creating a QPainter object with the opened image
             painter = QPainter(self.image.pixmap())
@@ -607,11 +635,119 @@ class ImageEditingWindow(QMainWindow):
             # Change the background color of the color changing button (change_color_btn)
             self.sender().setStyleSheet(f"background-color: {color.name()}")
 
-    # TODO
-    pass
+
+class CropAudioDialog(QDialog):
+    def __init__(self):
+        super(CropAudioDialog, self).__init__()
+        uic.loadUi('designs/crop_audio_dialog.ui', self)
 
 
 class AudioEditingWindow(QMainWindow):
+    def __init__(self):
+        super(AudioEditingWindow, self).__init__()
+        uic.loadUi('designs/audio_editor_window.ui', self)
+        self.player = QMediaPlayer()
+
+        self.open_btn.clicked.connect(self.open)
+        self.save_btn.clicked.connect(self.save)
+        self.save_as_btn.clicked.connect(self.save_as)
+
+        self.play_pause_btn.clicked.connect(self.play)
+        self.stop_btn.clicked.connect(self.stop)
+        self.rewind_slider.valueChanged.connect(self.rewind)
+        self.volume_slider.valueChanged.connect(self.change_volume)
+        self.pace_slider.valueChanged.connect(self.change_pace)
+        self.crop_btn.clicked.connect(self.crop)
+
+        self.waveform = None
+        self.sample_rate = None
+
+    def open(self):
+        global filename
+
+        # Getting the filename
+        new_filename = QFileDialog.getOpenFileName(self, 'Choose file', '')[0]
+
+        if new_filename:
+            # If the user didn't click "Cancel":
+            filename = new_filename
+
+            # Loading the audio
+            url = QUrl.fromLocalFile(filename)
+            content = QMediaContent(url)
+            self.player.setMedia(content)
+
+            try:
+                self.waveform, \
+                    self.sample_rate = librosa.load(filename)
+            except:
+                error_message = QErrorMessage(self)
+                error_message.showMessage("Please install ffmpeg")
+
+    def save(self):
+        if not filename:
+            # If the file is new:
+            self.save_as()
+
+        else:
+            sf.write(filename, self.waveform, self.sample_rate, 'PCM_24')
+
+    def save_as(self):
+        global filename
+
+        # Getting the filename
+        new_filename = QFileDialog.getSaveFileName(self, 'Choose file', '')[0]
+
+        if new_filename:
+            # If the user didn't click "Cancel":
+            filename = new_filename
+            sf.write(filename, self.waveform, self.sample_rate, 'PCM_24')
+
+    def play(self) -> None:
+        if self.player.state() == QMediaPlayer.PlayingState:
+            self.player.pause()
+        else:
+            self.player.play()
+
+    def stop(self) -> None:
+        self.player.stop()
+        self.rewind_slider.setValue(0)
+
+    def rewind(self, rewind_slider_position: int) -> None:
+        self.player.setPosition(int(self.player.duration() * (rewind_slider_position / 100)))
+
+    def change_volume(self, volume_slider_position: int) -> None:
+        self.player.setVolume(volume_slider_position)
+
+    def change_pace(self, pace_slider_position: int) -> None:
+        # Updating the stream rate
+        if self.player.playbackRate() != 0:
+            self.sample_rate /= self.player.playbackRate()
+        self.sample_rate *= (pace_slider_position / 50)
+        self.sample_rate = int(self.sample_rate)
+
+        # Updating the player
+        self.player.setPlaybackRate(pace_slider_position / 50)
+
+    def crop(self):
+        # Creating a dialog to ask the user about the positions of the start and the end of the song
+        dialog = CropAudioDialog()
+        dialog.exec_()
+
+        if dialog.result() == 1:
+            # If the user has clicked "OK":
+            start_slider_pos = dialog.start_slider.value()
+            end_slider_pos = dialog.end_slider.value()
+            if start_slider_pos >= end_slider_pos:
+                # If the position of the end is less than the position of the start:
+                error_message = QErrorMessage(self)
+                error_message.showMessage("The audio file ends earlier than starts")
+            else:
+                # Updating the waveform
+                start_waveform_pos = int(len(self.waveform) * (start_slider_pos / 100))
+                end_waveform_pos = int(len(self.waveform) * ((100 - end_slider_pos) / 100))
+                self.waveform = np.array(list(self.waveform)
+                                         [start_waveform_pos:end_waveform_pos + 1:])
     # TODO
     pass
 
