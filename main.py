@@ -6,6 +6,7 @@ import pilgram
 
 import librosa
 import soundfile as sf
+import numpy as np
 
 from PyQt5 import uic
 from PyQt5.QtGui import QPixmap, QFont, QKeyEvent, QIcon, QPainter, QPaintEvent, QMouseEvent, QPen
@@ -635,6 +636,12 @@ class ImageEditingWindow(QMainWindow):
             self.sender().setStyleSheet(f"background-color: {color.name()}")
 
 
+class CropAudioDialog(QDialog):
+    def __init__(self):
+        super(CropAudioDialog, self).__init__()
+        uic.loadUi('designs/crop_audio_dialog.ui', self)
+
+
 class AudioEditingWindow(QMainWindow):
     def __init__(self):
         super(AudioEditingWindow, self).__init__()
@@ -650,6 +657,7 @@ class AudioEditingWindow(QMainWindow):
         self.rewind_slider.valueChanged.connect(self.rewind)
         self.volume_slider.valueChanged.connect(self.change_volume)
         self.pace_slider.valueChanged.connect(self.change_pace)
+        self.crop_btn.clicked.connect(self.crop)
 
         self.waveform = None
         self.sample_rate = None
@@ -720,6 +728,26 @@ class AudioEditingWindow(QMainWindow):
 
         # Updating the player
         self.player.setPlaybackRate(pace_slider_position / 50)
+
+    def crop(self):
+        # Creating a dialog to ask the user about the positions of the start and the end of the song
+        dialog = CropAudioDialog()
+        dialog.exec_()
+
+        if dialog.result() == 1:
+            # If the user has clicked "OK":
+            start_slider_pos = dialog.start_slider.value()
+            end_slider_pos = dialog.end_slider.value()
+            if start_slider_pos >= end_slider_pos:
+                # If the position of the end is less than the position of the start:
+                error_message = QErrorMessage(self)
+                error_message.showMessage("The audio file ends earlier than starts")
+            else:
+                # Updating the waveform
+                start_waveform_pos = int(len(self.waveform) * (start_slider_pos / 100))
+                end_waveform_pos = int(len(self.waveform) * ((100 - end_slider_pos) / 100))
+                self.waveform = np.array(list(self.waveform)
+                                         [start_waveform_pos:end_waveform_pos + 1:])
     # TODO
     pass
 
