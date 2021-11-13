@@ -89,7 +89,7 @@ class MainWindow(QMainWindow):
 
             try:
                 audio_editing_window.waveform, \
-                    audio_editing_window.sample_rate = librosa.load(filename)
+                audio_editing_window.sample_rate = librosa.load(filename)
                 windows.setCurrentIndex(3)
             except:
                 error_message = QErrorMessage(self)
@@ -128,7 +128,7 @@ class MainWindow(QMainWindow):
 
                         try:
                             audio_editing_window.waveform, \
-                                audio_editing_window.sample_rate = librosa.load(filename)
+                            audio_editing_window.sample_rate = librosa.load(filename)
                             windows.setCurrentIndex(3)
 
                         except:
@@ -267,6 +267,7 @@ class ImageEditingWindow(QMainWindow):
         # Creating a label that will display the opened image or a new white image
         self.image = QLabel(self)
         self.image.move(170, 80)
+        self.image.setAlignment(Qt.AlignLeft)
 
         # Assigning the width and the height of the image to 0
         self.image_width = 0
@@ -382,8 +383,8 @@ class ImageEditingWindow(QMainWindow):
                 and event.button() == Qt.LeftButton:
             # If only button "Crop" or "Select" is checked,
             # start creating the rubber band
-            if 170 <= event.pos().x() <= 170 + self.image_height \
-                    and 80 <= event.pos().y() <= 80 + self.image_height:
+            if 170 <= event.pos().x() <= 170 + self.image.pixmap().width() \
+                    and 80 <= event.pos().y() <= 80 + self.image.pixmap().height():
                 # If the user has clicked inside the image:
                 if self.rubber_band is None:
                     # If the selection is for the first time, creating a new rubber band:
@@ -423,16 +424,16 @@ class ImageEditingWindow(QMainWindow):
             # to the nearest to the cursor possible spot
             if selection_horizontal_end_point < 170:
                 selection_horizontal_end_point = 170
-            elif selection_horizontal_end_point > 170 + self.image_width:
-                selection_horizontal_end_point = 170 + self.image_width
+            elif selection_horizontal_end_point > 170 + self.image.pixmap().width():
+                selection_horizontal_end_point = 170 + self.image.pixmap().width()
 
             selection_vertical_end_point = event.pos().y()
             # If the cursor is outside the image, setting selection_vertical_end_point
             # to the nearest to the cursor possible spot
             if selection_vertical_end_point < 80:
                 selection_vertical_end_point = 80
-            elif selection_vertical_end_point > 80 + self.image_height:
-                selection_vertical_end_point = 80 + self.image_height
+            elif selection_vertical_end_point > 80 + self.image.pixmap().height():
+                selection_vertical_end_point = 80 + self.image.pixmap().height()
 
             # Updating the rubber band
             self.rubber_band.setGeometry(QRect(self.rubber_band_origin,
@@ -684,7 +685,7 @@ class AudioEditingWindow(QMainWindow):
 
             try:
                 self.waveform, \
-                    self.sample_rate = librosa.load(filename)
+                self.sample_rate = librosa.load(filename)
             except:
                 error_message = QErrorMessage(self)
                 error_message.showMessage("Please install ffmpeg")
@@ -753,6 +754,7 @@ class AudioEditingWindow(QMainWindow):
                 end_waveform_pos = int(len(self.waveform) * (end_slider_pos / 100))
                 self.waveform = np.array(list(self.waveform)
                                          [start_waveform_pos:end_waveform_pos + 1:])
+
     # TODO
     pass
 
