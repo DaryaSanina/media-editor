@@ -745,7 +745,7 @@ class AudioEditingWindow(QMainWindow):
             else:
                 # Updating the waveform
                 start_waveform_pos = int(len(self.waveform) * (start_slider_pos / 100))
-                end_waveform_pos = int(len(self.waveform) * ((100 - end_slider_pos) / 100))
+                end_waveform_pos = int(len(self.waveform) * (end_slider_pos / 100))
                 self.waveform = np.array(list(self.waveform)
                                          [start_waveform_pos:end_waveform_pos + 1:])
     # TODO
