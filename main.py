@@ -4,11 +4,14 @@ from PIL import Image
 from PIL.ImageQt import ImageQt
 import pilgram
 
+import librosa
+import soundfile as sf
+
 from PyQt5 import uic
 from PyQt5.QtGui import QPixmap, QFont, QKeyEvent, QIcon, QPainter, QPaintEvent, QMouseEvent, QPen
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QInputDialog, QFileDialog, QMessageBox
-from PyQt5.QtWidgets import QStackedWidget, QDialog, QRubberBand, QColorDialog
+from PyQt5.QtWidgets import QStackedWidget, QDialog, QRubberBand, QColorDialog, QErrorMessage
 from PyQt5.QtCore import Qt, QRect, QSize, QPoint, QUrl
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 
@@ -78,12 +81,18 @@ class MainWindow(QMainWindow):
                 and QMessageBox.question(self, 'File type guess',
                                          "Do you want to edit an audio file?",
                                          QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
-            windows.setCurrentIndex(3)
-
             # Loading the audio
             url = QUrl.fromLocalFile(filename)
             content = QMediaContent(url)
             audio_editing_window.player.setMedia(content)
+
+            try:
+                audio_editing_window.waveform, \
+                    audio_editing_window.sample_rate = librosa.load(filename)
+                windows.setCurrentIndex(3)
+            except:
+                error_message = QErrorMessage(self)
+                error_message.showMessage("Please install ffmpeg")
 
         elif extension != '':
             # If the guess isn't correct,
@@ -111,12 +120,19 @@ class MainWindow(QMainWindow):
                     image_editing_window.is_saved = True
 
                 elif file_type == "Audio":
-                    windows.setCurrentIndex(3)
-
                     # Loading the audio
                     url = QUrl.fromLocalFile(filename)
                     content = QMediaContent(url)
                     audio_editing_window.player.setMedia(content)
+
+                    try:
+                        audio_editing_window.waveform, \
+                            audio_editing_window.sample_rate = librosa.load(filename)
+                        windows.setCurrentIndex(3)
+
+                    except:
+                        error_message = QErrorMessage(self)
+                        error_message.showMessage("Please install ffmpeg")
 
 
 class TextEditingWindow(QMainWindow):
@@ -336,17 +352,9 @@ class ImageEditingWindow(QMainWindow):
             image_editing_window.is_saved = True
 
     def save(self) -> None:
-        global filename
-
         if not filename:
-            # If the file is new, asking the user for the filename
-            new_filename = QFileDialog.getSaveFileName(self, 'Save the file', '')[0]
-            if new_filename:
-                # If the user didn't click "Cancel":
-                filename = new_filename
-                extension = filename[filename.rfind('.')::][1::].upper()
-                self.image.pixmap().save(filename, extension)
-                self.is_saved = True
+            # If the file is new:
+            self.save_as()
 
         else:
             extension = filename[filename.rfind('.')::][1::].upper()
@@ -633,14 +641,59 @@ class AudioEditingWindow(QMainWindow):
         uic.loadUi('designs/audio_editor_window.ui', self)
         self.player = QMediaPlayer()
 
+        self.open_btn.clicked.connect(self.open)
+        self.save_btn.clicked.connect(self.save)
+        self.save_as_btn.clicked.connect(self.save_as)
+
         self.play_pause_btn.clicked.connect(self.play)
         self.stop_btn.clicked.connect(self.stop)
         self.rewind_slider.valueChanged.connect(self.rewind)
         self.volume_slider.valueChanged.connect(self.change_volume)
         self.pace_slider.valueChanged.connect(self.change_pace)
 
-        self.is_playing = False
-        self.is_paused = False
+        self.waveform = None
+        self.sample_rate = None
+
+    def open(self):
+        global filename
+
+        # Getting the filename
+        new_filename = QFileDialog.getOpenFileName(self, 'Choose file', '')[0]
+
+        if new_filename:
+            # If the user didn't click "Cancel":
+            filename = new_filename
+
+            # Loading the audio
+            url = QUrl.fromLocalFile(filename)
+            content = QMediaContent(url)
+            self.player.setMedia(content)
+
+            try:
+                self.waveform, \
+                    self.sample_rate = librosa.load(filename)
+            except:
+                error_message = QErrorMessage(self)
+                error_message.showMessage("Please install ffmpeg")
+
+    def save(self):
+        if not filename:
+            # If the file is new:
+            self.save_as()
+
+        else:
+            sf.write(filename, self.waveform, self.sample_rate, 'PCM_24')
+
+    def save_as(self):
+        global filename
+
+        # Getting the filename
+        new_filename = QFileDialog.getSaveFileName(self, 'Choose file', '')[0]
+
+        if new_filename:
+            # If the user didn't click "Cancel":
+            filename = new_filename
+            sf.write(filename, self.waveform, self.sample_rate, 'PCM_24')
 
     def play(self) -> None:
         if self.player.state() == QMediaPlayer.PlayingState:
@@ -659,6 +712,13 @@ class AudioEditingWindow(QMainWindow):
         self.player.setVolume(volume_slider_position)
 
     def change_pace(self, pace_slider_position: int) -> None:
+        # Updating the stream rate
+        if self.player.playbackRate() != 0:
+            self.sample_rate /= self.player.playbackRate()
+        self.sample_rate *= (pace_slider_position / 50)
+        self.sample_rate = int(self.sample_rate)
+
+        # Updating the player
         self.player.setPlaybackRate(pace_slider_position / 50)
     # TODO
     pass
