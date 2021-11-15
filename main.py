@@ -303,6 +303,8 @@ class ImageEditingWindow(QMainWindow):
         self.brush_color = QColor(0, 0, 0, 255)  # (0, 0, 0, 255) is black color
 
     def new(self) -> None:
+        global filename
+
         # Creating a dialog
         # to ask the user about the width and the height of the picture to create
         dialog = ChooseImageSizeDialog()
@@ -338,7 +340,7 @@ class ImageEditingWindow(QMainWindow):
                 self.image_width = dialog.width_spin_box.value()
                 self.image_height = dialog.height_spin_box.value()
 
-        pixmap = QPixmap(self.image_width, self.image_height)
+        pixmap = QPixmap(self.image_width, self.image_height).scaled(620, 470, Qt.KeepAspectRatio)
         pixmap.fill(Qt.white)
         self.image.setPixmap(pixmap)
 
@@ -346,6 +348,8 @@ class ImageEditingWindow(QMainWindow):
         self.pixmap_without_filters.fill(Qt.white)
 
         self.is_saved = False
+
+        filename = ''
 
     def open(self) -> None:
         global filename
@@ -773,6 +777,8 @@ class AudioEditingWindow(QMainWindow):
 
 
 if __name__ == '__main__':
+    filename = ''
+
     app = QApplication(sys.argv)
 
     windows = QStackedWidget()
