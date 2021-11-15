@@ -55,7 +55,13 @@ class MainWindow(QMainWindow):
     def open(self) -> None:
         # Getting the filename and the file extension
         global filename
-        filename = QFileDialog.getOpenFileName(self, 'Choose file', '')[0]
+        filename = QFileDialog.getOpenFileName(self, 'Choose file', '',
+                                               'Text Document (*.txt);;HTML Document (*.html);;'
+                                               'HTML Document (*.htm);;Image (*.png);;'
+                                               'Image (*.jpg);;Image (*.bmp);;Image (*.gif);;'
+                                               'Image (*.jpeg);;Image (*.pbm);;Image (*.tiff);;'
+                                               'Image (*.svg);;Image (*.xbm);;Audio File (*.mp3);;'
+                                               'Audio File (*.wav);;All Files (*)')[0]
         extension = filename[filename.rfind('.')::]
 
         # Guessing what editor the user wants to open
@@ -93,7 +99,8 @@ class MainWindow(QMainWindow):
                 windows.setCurrentIndex(3)
             except:
                 error_message = QErrorMessage(self)
-                error_message.showMessage("Please install ffmpeg")
+                error_message.showMessage("Current format is not supported by ffmpeg\n"
+                                          "or you haven't installed ffmpeg.")
 
         elif extension != '':
             # If the guess isn't correct,
@@ -133,7 +140,8 @@ class MainWindow(QMainWindow):
 
                         except:
                             error_message = QErrorMessage(self)
-                            error_message.showMessage("Please install ffmpeg")
+                            error_message.showMessage("Current format is not supported by ffmpeg\n"
+                                                      "or you haven't installed ffmpeg.")
                 except:
                     error_message = QErrorMessage(self)
                     error_message.showMessage("Can't read the file")
@@ -167,7 +175,9 @@ class TextEditingWindow(QMainWindow):
     def open(self) -> None:
         global filename
 
-        new_filename = QFileDialog.getOpenFileName(self, 'Choose file', '')[0]
+        new_filename = QFileDialog.getOpenFileName(self, 'Choose file', '',
+                                                   'Text Document (*.txt);;HTML Document (*.html);;'
+                                                   'HTML Document (*.htm);;All Files (*)')[0]
         if new_filename:
             # If the user didn't click "Cancel":
             filename = new_filename
@@ -190,7 +200,9 @@ class TextEditingWindow(QMainWindow):
     def save_as(self) -> None:
         global filename
 
-        new_filename = QFileDialog.getSaveFileName(self, 'Save file', '')[0]
+        new_filename = QFileDialog.getSaveFileName(self, 'Save file', '',
+                                                   'Text Document (*.txt);;HTML Document (*.html);;'
+                                                   'HTML Document (*.htm);;All Files (*)')[0]
         if new_filename:
             filename = new_filename
             # If the user didn't click "Cancel":
@@ -355,7 +367,10 @@ class ImageEditingWindow(QMainWindow):
         global filename
 
         # Getting the filename
-        new_filename = QFileDialog.getOpenFileName(self, 'Choose file', '')[0]
+        new_filename = QFileDialog.getOpenFileName(self, 'Choose file', '',
+                                                   'Image (*.jpg);;Image (*.bmp);;Image (*.gif);;'
+                                                   'Image (*.jpeg);;Image (*.pbm);;Image (*.tiff);;'
+                                                   'Image (*.svg);;Image (*.xbm);;All Files (*)')[0]
 
         if new_filename:
             # If the user didn't click "Cancel", displaying the image from the opened file
@@ -377,7 +392,10 @@ class ImageEditingWindow(QMainWindow):
     def save_as(self) -> None:
         global filename
 
-        new_filename = QFileDialog.getSaveFileName(self, 'Save the file', '')[0]
+        new_filename = QFileDialog.getSaveFileName(self, 'Save the file', '',
+                                                   'Image (*.jpg);;Image (*.bmp);;Image (*.gif);;'
+                                                   'Image (*.jpeg);;Image (*.pbm);;Image (*.tiff);;'
+                                                   'Image (*.svg);;Image (*.xbm);;All Files (*)')[0]
 
         if new_filename:
             # If the user didn't click "Cancel":
@@ -680,7 +698,9 @@ class AudioEditingWindow(QMainWindow):
         global filename
 
         # Getting the filename
-        new_filename = QFileDialog.getOpenFileName(self, 'Choose file', '')[0]
+        new_filename = QFileDialog.getOpenFileName(self, 'Choose file', '',
+                                                   'Audio File (*.mp3);;Audio File (*.wav)'
+                                                   ';;All Files (*)')[0]
 
         if new_filename:
             # If the user didn't click "Cancel":
@@ -696,7 +716,8 @@ class AudioEditingWindow(QMainWindow):
                 self.sample_rate = librosa.load(filename)
             except:
                 error_message = QErrorMessage(self)
-                error_message.showMessage("Please install ffmpeg")
+                error_message.showMessage("Current format is not supported by ffmpeg\n"
+                                          "or you haven't installed ffmpeg.")
 
     def save(self):
         global filename
@@ -719,7 +740,9 @@ class AudioEditingWindow(QMainWindow):
         global filename
 
         # Getting the filename
-        new_filename = QFileDialog.getSaveFileName(self, 'Choose file', '')[0]
+        new_filename = QFileDialog.getSaveFileName(self, 'Choose file', '',
+                                                   'Audio File (*.mp3);;Audio File (*.wav)'
+                                                   ';;All Files (*)')[0]
 
         if new_filename:
             # If the user didn't click "Cancel":
