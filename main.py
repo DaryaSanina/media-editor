@@ -167,16 +167,17 @@ class TextEditingWindow(QMainWindow):
     def open(self) -> None:
         global filename
 
-        filename = QFileDialog.getOpenFileName(self, 'Choose file', '')[0]
-        with open(filename, 'r', encoding='utf-8') as source_file:
-            self.text_edit.setText(source_file.read())
+        new_filename = QFileDialog.getOpenFileName(self, 'Choose file', '')[0]
+        if new_filename:
+            # If the user didn't click "Cancel":
+            filename = new_filename
+            with open(filename, 'r', encoding='utf-8') as source_file:
+                self.text_edit.setText(source_file.read())
 
     def save(self) -> None:
-        global filename
-
         if not filename:
-            # If the file is new, asking the user for the filename
-            filename = QFileDialog.getSaveFileName(self, 'Save file', '')[0]
+            # If the file is new:
+            self.save_as()
         with open(filename, 'w', encoding='utf-8') as dest_file:
             extension = filename[filename.rfind('.')::]
             # If the extension of the file the user wants to save the text to is an html extension,
@@ -189,9 +190,12 @@ class TextEditingWindow(QMainWindow):
     def save_as(self) -> None:
         global filename
 
-        filename = QFileDialog.getSaveFileName(self, 'Save file', '')[0]
-        with open(filename, 'w', encoding='utf-8') as dest_file:
-            dest_file.write(self.text_edit.toPlainText())
+        new_filename = QFileDialog.getSaveFileName(self, 'Save file', '')[0]
+        if new_filename:
+            filename = new_filename
+            # If the user didn't click "Cancel":
+            with open(filename, 'w', encoding='utf-8') as dest_file:
+                dest_file.write(self.text_edit.toPlainText())
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         if int(event.modifiers()) == Qt.ControlModifier and event.key() == Qt.Key_S:
@@ -691,12 +695,21 @@ class AudioEditingWindow(QMainWindow):
                 error_message.showMessage("Please install ffmpeg")
 
     def save(self):
+        global filename
+
         if not filename:
             # If the file is new:
             self.save_as()
 
         else:
-            sf.write(filename, self.waveform, self.sample_rate, 'PCM_24')
+            try:
+                sf.write(filename, self.waveform, self.sample_rate, 'PCM_24')
+            except TypeError:
+                error_message = QErrorMessage(self)
+                error_message.showMessage("""Couldn't save the file in it's original format.
+                It'll be saved in '.wav' format.""")
+                filename = filename[:filename.rfind('.'):] + ".wav"
+                sf.write(filename, self.waveform, self.sample_rate, 'PCM_24')
 
     def save_as(self):
         global filename
