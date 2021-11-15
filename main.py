@@ -95,7 +95,7 @@ class MainWindow(QMainWindow):
 
             try:
                 audio_editing_window.waveform, \
-                audio_editing_window.sample_rate = librosa.load(filename)
+                    audio_editing_window.sample_rate = librosa.load(filename)
                 windows.setCurrentIndex(3)
             except:
                 error_message = QErrorMessage(self)
@@ -135,7 +135,7 @@ class MainWindow(QMainWindow):
 
                         try:
                             audio_editing_window.waveform, \
-                            audio_editing_window.sample_rate = librosa.load(filename)
+                                audio_editing_window.sample_rate = librosa.load(filename)
                             windows.setCurrentIndex(3)
 
                         except:
@@ -156,6 +156,7 @@ class TextEditingWindow(QMainWindow):
         self.open_btn.clicked.connect(self.open)
         self.save_btn.clicked.connect(self.save)
         self.save_as_btn.clicked.connect(self.save_as)
+        self.home_btn.clicked.connect(self.home)
 
         self.font_combo_box.currentFontChanged.connect(self.change_font)
 
@@ -208,6 +209,12 @@ class TextEditingWindow(QMainWindow):
             # If the user didn't click "Cancel":
             with open(filename, 'w', encoding='utf-8') as dest_file:
                 dest_file.write(self.text_edit.toPlainText())
+
+    def home(self):
+        global filename
+
+        filename = ''
+        windows.setCurrentIndex(0)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         if int(event.modifiers()) == Qt.ControlModifier and event.key() == Qt.Key_S:
@@ -300,6 +307,8 @@ class ImageEditingWindow(QMainWindow):
         self.open_btn.clicked.connect(self.open)
         self.save_btn.clicked.connect(self.save)
         self.save_as_btn.clicked.connect(self.save_as)
+        self.home_btn.clicked.connect(self.home)
+
         self.filter_combo_box.currentTextChanged.connect(self.change_filter)
         self.brush_size_spin_box.valueChanged.connect(self.change_brush_size)
         self.brush_opacity_spin_box.valueChanged.connect(self.change_brush_opacity)
@@ -403,6 +412,12 @@ class ImageEditingWindow(QMainWindow):
             extension = filename[filename.rfind('.')::][1::].upper()
             self.image.pixmap().save(filename, extension)
             self.is_saved = True
+
+    def home(self):
+        global filename
+
+        filename = ''
+        windows.setCurrentIndex(0)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
         if (self.select_btn.isChecked() or self.crop_btn.isChecked()) \
@@ -683,6 +698,7 @@ class AudioEditingWindow(QMainWindow):
         self.open_btn.clicked.connect(self.open)
         self.save_btn.clicked.connect(self.save)
         self.save_as_btn.clicked.connect(self.save_as)
+        self.home_btn.clicked.connect(self.home)
 
         self.play_pause_btn.clicked.connect(self.play)
         self.stop_btn.clicked.connect(self.stop)
@@ -748,6 +764,12 @@ class AudioEditingWindow(QMainWindow):
             # If the user didn't click "Cancel":
             filename = new_filename
             sf.write(filename, self.waveform, self.sample_rate, 'PCM_24')
+
+    def home(self):
+        global filename
+
+        filename = ''
+        windows.setCurrentIndex(0)
 
     def play(self) -> None:
         if self.player.state() == QMediaPlayer.PlayingState:
