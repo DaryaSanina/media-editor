@@ -1,4 +1,6 @@
+import os.path
 import sys
+from tempfile import NamedTemporaryFile
 
 from PIL import Image
 from PIL.ImageQt import ImageQt
@@ -6,7 +8,7 @@ import pilgram
 
 import librosa
 import soundfile as sf
-import numpy as np
+from numpy import array as np_array
 
 from PyQt5 import uic
 from PyQt5.QtGui import QPixmap, QFont, QKeyEvent, QIcon, QPainter, QPaintEvent, QMouseEvent, QPen
@@ -27,7 +29,7 @@ filename = ''
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
-        uic.loadUi('designs/main_window.ui', self)
+        uic.loadUi(os.path.abspath('designs/main_window.ui'), self)
 
         self.create_new_btn.clicked.connect(self.choose_what_to_create)
         self.open_btn.clicked.connect(self.open)
@@ -84,6 +86,15 @@ class MainWindow(QMainWindow):
             image_editing_window.image.setPixmap(QPixmap(filename)
                                                  .scaled(620, 470, Qt.KeepAspectRatio))
             image_editing_window.is_saved = True
+
+            # Creating a temporary file with the opened image for the unsaved changes
+            image_editing_window.temporary_file = NamedTemporaryFile(suffix='.jpg', delete=False)
+            temporary_file_name = image_editing_window.temporary_file.name
+            temporary_file_extension = temporary_file_name[
+                                       temporary_file_name.rfind('.')::][1::].upper()
+            image_editing_window.image.pixmap().save(temporary_file_name,
+                                                     temporary_file_extension)
+
         elif extension in AUDIO_EXTENSIONS \
                 and QMessageBox.question(self, 'File type guess',
                                          "Do you want to edit an audio file?",
@@ -125,6 +136,16 @@ class MainWindow(QMainWindow):
                         image_editing_window.image.setPixmap(QPixmap(filename)
                                                              .scaled(620, 470, Qt.KeepAspectRatio))
                         image_editing_window.is_saved = True
+
+                        # Creating a temporary file with the opened image for the unsaved changes
+                        image_editing_window.temporary_file = NamedTemporaryFile(suffix='.jpg',
+                                                                                 delete=False)
+                        temporary_file_name = image_editing_window.temporary_file.name
+                        temporary_file_extension = temporary_file_name[
+                                                   temporary_file_name.rfind('.')::][1::].upper()
+                        image_editing_window.image.pixmap().save(temporary_file_name,
+                                                                 temporary_file_extension)
+
                         windows.setCurrentIndex(2)
 
                     elif file_type == "Audio":
@@ -150,13 +171,13 @@ class MainWindow(QMainWindow):
 class TextEditingWindow(QMainWindow):
     def __init__(self):
         super(TextEditingWindow, self).__init__()
-        uic.loadUi('designs/text_editor_window.ui', self)
+        uic.loadUi(os.path.abspath('designs/text_editor_window.ui'), self)
 
         self.new_btn.clicked.connect(self.new)
         self.open_btn.clicked.connect(self.open)
         self.save_btn.clicked.connect(self.save)
         self.save_as_btn.clicked.connect(self.save_as)
-        self.home_btn.clicked.connect(self.home)
+        self.home_btn.clicked.connect(return_home)
 
         self.font_combo_box.currentFontChanged.connect(self.change_font)
 
@@ -210,12 +231,6 @@ class TextEditingWindow(QMainWindow):
             with open(filename, 'w', encoding='utf-8') as dest_file:
                 dest_file.write(self.text_edit.toPlainText())
 
-    def home(self):
-        global filename
-
-        filename = ''
-        windows.setCurrentIndex(0)
-
     def keyPressEvent(self, event: QKeyEvent) -> None:
         if int(event.modifiers()) == Qt.ControlModifier and event.key() == Qt.Key_S:
             # "Ctrl" + "S" shortcut to save the file
@@ -266,7 +281,7 @@ class TextEditingWindow(QMainWindow):
 class ChooseImageSizeDialog(QDialog):
     def __init__(self):
         super(ChooseImageSizeDialog, self).__init__()
-        uic.loadUi('designs/choose_size_dialog.ui', self)
+        uic.loadUi(os.path.abspath('designs/choose_size_dialog.ui'), self)
 
         self.unit_combo_box.currentTextChanged.connect(self.set_default_width_and_height)
 
@@ -285,7 +300,7 @@ class ChooseImageSizeDialog(QDialog):
 class ImageEditingWindow(QMainWindow):
     def __init__(self):
         super(ImageEditingWindow, self).__init__()
-        uic.loadUi('designs/image_editor_window.ui', self)
+        uic.loadUi(os.path.abspath('designs/image_editor_window.ui'), self)
 
         # Creating a label that will display the opened image or a new white image
         self.image = QLabel(self)
@@ -297,6 +312,7 @@ class ImageEditingWindow(QMainWindow):
         self.image_height = 0
 
         self.is_saved = False
+        self.temporary_file = None
 
         self.pixmap_without_filters = None
 
@@ -307,7 +323,7 @@ class ImageEditingWindow(QMainWindow):
         self.open_btn.clicked.connect(self.open)
         self.save_btn.clicked.connect(self.save)
         self.save_as_btn.clicked.connect(self.save_as)
-        self.home_btn.clicked.connect(self.home)
+        self.home_btn.clicked.connect(return_home)
 
         self.filter_combo_box.currentTextChanged.connect(self.change_filter)
         self.brush_size_spin_box.valueChanged.connect(self.change_brush_size)
@@ -370,6 +386,11 @@ class ImageEditingWindow(QMainWindow):
 
         self.is_saved = False
 
+        # Create a temporary file in the main.py's directory
+        self.temporary_file = NamedTemporaryFile(suffix='.jpg', delete=False)
+        self.image.pixmap().save(self.temporary_file.name)
+        print(self.temporary_file.name)
+
         filename = ''
 
     def open(self) -> None:
@@ -412,12 +433,6 @@ class ImageEditingWindow(QMainWindow):
             extension = filename[filename.rfind('.')::][1::].upper()
             self.image.pixmap().save(filename, extension)
             self.is_saved = True
-
-    def home(self):
-        global filename
-
-        filename = ''
-        windows.setCurrentIndex(0)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
         if (self.select_btn.isChecked() or self.crop_btn.isChecked()) \
@@ -526,10 +541,12 @@ class ImageEditingWindow(QMainWindow):
         elif self.is_drawing:
             self.is_drawing = False
             self.is_saved = False
+            self.image.pixmap().save(self.temporary_file.name)  # updating the temporary file
 
         elif self.is_erasing:
             self.is_erasing = False
             self.is_saved = False
+            self.image.pixmap().save(self.temporary_file.name)  # updating the temporary file
 
         elif self.is_drawing_line:
             # Creating a QPainter object with the opened image
@@ -541,6 +558,7 @@ class ImageEditingWindow(QMainWindow):
             self.update()
             self.is_drawing_line = False
             self.is_saved = False
+            self.image.pixmap().save(self.temporary_file.name)  # updating the temporary file
 
         elif self.is_drawing_rectangle:
             # Creating a QPainter object with the opened image
@@ -553,6 +571,7 @@ class ImageEditingWindow(QMainWindow):
             self.update()
             self.is_drawing_rectangle = False
             self.is_saved = False
+            self.image.pixmap().save(self.temporary_file.name)  # updating the temporary file
 
         elif self.is_drawing_ellipse:
             # Creating a QPainter object with the opened image
@@ -565,6 +584,7 @@ class ImageEditingWindow(QMainWindow):
             self.update()
             self.is_drawing_ellipse = False
             self.is_saved = False
+            self.image.pixmap().save(self.temporary_file.name)  # updating the temporary file
 
     def paintEvent(self, event: QPaintEvent) -> None:
         self.image.resize(620, 470)
@@ -591,11 +611,10 @@ class ImageEditingWindow(QMainWindow):
             if self.is_saved:
                 pil_image = Image.open(filename)
             else:
-                # Converting the opened QPixmap image to PIL Image format
-                image_qt_image = self.image.pixmap().toImage()
-                data = image_qt_image.constBits().asstring(image_qt_image.byteCount())
-                pil_image = Image.frombuffer('RGBA', (self.image_width, self.image_height), data,
-                                             'raw', 'RGBA', 0, 1)
+                try:
+                    pil_image = Image.open(self.temporary_file.name)
+                except Exception as e:
+                    print(e)
 
             # Applying the chosen filter
             if image_filter == "Clarendon":
@@ -616,13 +635,8 @@ class ImageEditingWindow(QMainWindow):
 
                 for i in range(self.image_width):
                     for j in range(self.image_height):
-                        if self.is_saved:
-                            # The mode is 'RGB', getting the pixel's red, green and blue component
-                            r, g, b = pixels[i, j]
-                        else:
-                            # The mode is 'RGBA', getting the pixel's red, green, blue
-                            # and alpha component
-                            r, g, b, a = pixels[i, j]
+                        # The mode is 'RGB', getting the pixel's red, green and blue component
+                        r, g, b = pixels[i, j]
                         if image_filter == "Only red":
                             # Leaving only red pixel's component
                             g, b = 0, 0
@@ -654,10 +668,7 @@ class ImageEditingWindow(QMainWindow):
                             b = middle_color
 
                         # Updating the pixel
-                        if self.is_saved:
-                            pil_image.putpixel((i, j), (r, g, b))
-                        else:
-                            pil_image.putpixel((i, j), (r, g, b, a))
+                        pil_image.putpixel((i, j), (r, g, b))
 
             # Converting the updated PIL Image image to QPixmap format
             # and applying it to the image label
@@ -667,6 +678,8 @@ class ImageEditingWindow(QMainWindow):
             self.image_width = pixmap.width()
             self.image_height = pixmap.height()
             self.image.setPixmap(pixmap)
+
+            self.image.pixmap().save(self.temporary_file.name)  # updating the temporary file
 
     def change_brush_size(self, size: float) -> None:
         self.brush_size = size
@@ -686,19 +699,19 @@ class ImageEditingWindow(QMainWindow):
 class CropAudioDialog(QDialog):
     def __init__(self):
         super(CropAudioDialog, self).__init__()
-        uic.loadUi('designs/crop_audio_dialog.ui', self)
+        uic.loadUi(os.path.abspath('designs/crop_audio_dialog.ui'), self)
 
 
 class AudioEditingWindow(QMainWindow):
     def __init__(self):
         super(AudioEditingWindow, self).__init__()
-        uic.loadUi('designs/audio_editor_window.ui', self)
+        uic.loadUi(os.path.abspath('designs/audio_editor_window.ui'), self)
         self.player = QMediaPlayer()
 
         self.open_btn.clicked.connect(self.open)
         self.save_btn.clicked.connect(self.save)
         self.save_as_btn.clicked.connect(self.save_as)
-        self.home_btn.clicked.connect(self.home)
+        self.home_btn.clicked.connect(return_home)
 
         self.play_pause_btn.clicked.connect(self.play)
         self.stop_btn.clicked.connect(self.stop)
@@ -765,12 +778,6 @@ class AudioEditingWindow(QMainWindow):
             filename = new_filename
             sf.write(filename, self.waveform, self.sample_rate, 'PCM_24')
 
-    def home(self):
-        global filename
-
-        filename = ''
-        windows.setCurrentIndex(0)
-
     def play(self) -> None:
         if self.player.state() == QMediaPlayer.PlayingState:
             self.player.pause()
@@ -814,11 +821,16 @@ class AudioEditingWindow(QMainWindow):
                 # Updating the waveform
                 start_waveform_pos = int(len(self.waveform) * (start_slider_pos / 100))
                 end_waveform_pos = int(len(self.waveform) * (end_slider_pos / 100))
-                self.waveform = np.array(list(self.waveform)
+                self.waveform = np_array(list(self.waveform)
                                          [start_waveform_pos:end_waveform_pos + 1:])
-
-    # TODO
     pass
+
+
+def return_home() -> None:
+    global filename
+
+    filename = ''
+    windows.setCurrentIndex(0)
 
 
 if __name__ == '__main__':
