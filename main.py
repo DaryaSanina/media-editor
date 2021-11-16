@@ -753,7 +753,7 @@ class AudioEditingWindow(QMainWindow):
             filename = new_filename
 
             # Loading the audio
-            url = QUrl.fromLocalFile(self.temporary_file.name)
+            url = QUrl.fromLocalFile(filename)
             content = QMediaContent(url)
             self.player.setMedia(content)
 
@@ -773,17 +773,19 @@ class AudioEditingWindow(QMainWindow):
     def save(self):
         global filename
 
-        if not filename:
-            # If the file is new:
+        if not filename:  # if the file is new:
             self.save_as()
 
         else:
-            try:
-                sf.write(filename, self.waveform, self.stream_rate, 'PCM_24')
-            except TypeError:
+            extension = filename[filename.rfind('.')::][1::].upper()
+            if extension in sf.available_formats() \
+                    and filename[filename.rfind('.')::] in AUDIO_EXTENSIONS:
+                # If current format is available to save with soundfile:
+                sf.write(filename, self.waveform, self.stream_rate, 'PCM_24', format=extension)
+            else:
                 error_message = QErrorMessage(self)
-                error_message.showMessage("""Couldn't save the file in it's original format.
-                It'll be saved in '.wav' format.""")
+                error_message.showMessage("""Couldn't save the file in the chosen format.
+                            It'll be saved in '.wav' format.""")
                 filename = filename[:filename.rfind('.'):] + ".wav"
                 sf.write(filename, self.waveform, self.stream_rate, 'PCM_24')
 
@@ -792,15 +794,18 @@ class AudioEditingWindow(QMainWindow):
 
         # Getting the filename
         new_filename = QFileDialog.getSaveFileName(self, 'Choose file', '',
-                                                   'Audio File (*.mp3);;Audio File (*.wav)'
-                                                   ';;All Files (*)')[0]
+                                                   'Audio File (*.wav);;All Files (*)')[0]
 
-        if new_filename:
-            try:
-                sf.write(filename, self.waveform, self.stream_rate, 'PCM_24')
-            except TypeError:
+        if new_filename:  # if the user didn't click "Cancel":
+            filename = new_filename
+            extension = filename[filename.rfind('.')::][1::].upper()
+            if extension in sf.available_formats() \
+                    and filename[filename.rfind('.')::] in AUDIO_EXTENSIONS:
+                # If current format is available to save with soundfile:
+                sf.write(filename, self.waveform, self.stream_rate, 'PCM_24', format=extension)
+            else:
                 error_message = QErrorMessage(self)
-                error_message.showMessage("""Couldn't save the file in it's original format.
+                error_message.showMessage("""Couldn't save the file in the chosen format.
                 It'll be saved in '.wav' format.""")
                 filename = filename[:filename.rfind('.'):] + ".wav"
                 sf.write(filename, self.waveform, self.stream_rate, 'PCM_24')
