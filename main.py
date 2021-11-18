@@ -42,6 +42,8 @@ class MainWindow(QMainWindow):
         self.title_image.resize(480, 125)
         self.title_image.setPixmap(self.title_image_pixmap)
 
+        self.loading_label.hide()
+
     def closeEvent(self, event: QCloseEvent) -> None:
         answer = QMessageBox.question(self, "Confirm exit", "Are you sure you want to exit?",
                                       QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
@@ -87,22 +89,24 @@ class MainWindow(QMainWindow):
                                                'Audio File (*.wav);;All Files (*)')[0]
         extension = filename[filename.rfind('.')::]
 
+        self.loading_label.show()
+
         # Guessing what editor the user wants to open
         if extension in TEXT_EXTENSIONS or extension in HTML_EXTENSIONS \
                 and QMessageBox.question(self, "File type guess",
                                          "Do you want to edit a text document?",
                                          QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
-            windows.setCurrentIndex(1)
-
             # Reading the text from the file
             with open(filename, 'r', encoding='utf-8') as source_file:
                 text_editing_window.text_edit.setText(source_file.read())
 
+            self.loading_label.hide()
+
+            windows.setCurrentIndex(1)
+
         elif extension in IMAGE_EXTENSIONS \
                 and QMessageBox.question(self, 'File type guess', "Do you want to edit an image?",
                                          QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
-            windows.setCurrentIndex(2)
-
             # Displaying the image from the opened file
             image_editing_window.image.setPixmap(QPixmap(filename)
                                                  .scaled(620, 470, Qt.KeepAspectRatio))
@@ -116,11 +120,16 @@ class MainWindow(QMainWindow):
             image_editing_window.image.pixmap().save(temporary_file_name,
                                                      temporary_file_extension)
 
+            self.loading_label.hide()
+
+            windows.setCurrentIndex(2)
+
         elif extension in AUDIO_EXTENSIONS \
                 and QMessageBox.question(self, 'File type guess',
                                          "Do you want to edit an audio file?",
                                          QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
             # Loading the audio
+
             url = QUrl.fromLocalFile(filename)
             content = QMediaContent(url)
             audio_editing_window.player.setMedia(content)
@@ -142,6 +151,7 @@ class MainWindow(QMainWindow):
                 error_message = QErrorMessage(self)
                 error_message.showMessage("Current format is not supported by ffmpeg\n"
                                           "or you haven't installed ffmpeg.")
+            self.loading_label.hide()
 
         elif extension != '':
             # If the guess isn't correct,
@@ -152,7 +162,10 @@ class MainWindow(QMainWindow):
                                                          0, False)
 
             # Opening the editor that the user wants to open
+            self.loading_label.hide()
+
             if ok_pressed:
+                self.loading_label.show()
                 try:
                     if file_type == "Text":
                         # Reading the text from the file
@@ -207,6 +220,10 @@ class MainWindow(QMainWindow):
                 except:
                     error_message = QErrorMessage(self)
                     error_message.showMessage("Can't read the file")
+
+                self.loading_label.hide()
+        else:
+            self.loading_label.hide()
 
 
 class TextEditingWindow(QMainWindow):
@@ -790,6 +807,7 @@ class AudioEditingWindow(QMainWindow):
         self.save_btn.clicked.connect(self.save)
         self.save_as_btn.clicked.connect(self.save_as)
         self.home_btn.clicked.connect(self.return_home)
+        self.loading_label.hide()
 
         self.play_pause_btn.clicked.connect(self.play)
         self.stop_btn.clicked.connect(self.stop)
@@ -807,6 +825,8 @@ class AudioEditingWindow(QMainWindow):
 
     def open(self):
         global filename
+
+        self.loading_label.show()
 
         # Getting the filename
         new_filename = QFileDialog.getOpenFileName(self, 'Choose file', '',
@@ -834,6 +854,8 @@ class AudioEditingWindow(QMainWindow):
                 error_message = QErrorMessage(self)
                 error_message.showMessage("Current format is not supported by ffmpeg\n"
                                           "or you haven't installed ffmpeg.")
+
+        self.loading_label.hide()
 
     def save(self):
         global filename
