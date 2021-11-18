@@ -13,7 +13,7 @@ from numpy import array as np_array
 
 from PyQt5 import uic
 from PyQt5.QtGui import QPixmap, QFont, QKeyEvent, QIcon, QPainter, QPaintEvent, QMouseEvent, QPen
-from PyQt5.QtGui import QColor
+from PyQt5.QtGui import QColor, QCloseEvent
 from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QInputDialog, QFileDialog, QMessageBox
 from PyQt5.QtWidgets import QStackedWidget, QDialog, QRubberBand, QColorDialog, QErrorMessage
 from PyQt5.QtCore import Qt, QRect, QSize, QPoint, QUrl
@@ -42,6 +42,26 @@ class MainWindow(QMainWindow):
         self.title_image.resize(480, 125)
         self.title_image.setPixmap(self.title_image_pixmap)
 
+    def closeEvent(self, event: QCloseEvent) -> None:
+        answer = QMessageBox.question(self, "Confirm exit", "Are you sure you want to exit?",
+                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if answer == QMessageBox.Yes:
+            if image_editing_window.temporary_file is not None:
+                # If the user has edited an image, deleting the created image temporary file
+                image_editing_window.temporary_file.close()
+                os.unlink(image_editing_window.temporary_file.name)
+
+            if audio_editing_window.temporary_file is not None:
+                # If the user has edited an audio file,
+                # deleting all the temporary files that were used to edit an audio file
+                audio_editing_window.temporary_file.close()
+                for temporary_file_name in audio_editing_window.temporary_file_names:
+                    os.unlink(temporary_file_name)
+
+            event.accept()
+        else:
+            event.ignore()
+
     def choose_what_to_create(self) -> None:
         # Creating an input dialog to ask the user what editor to open
         file_type, ok_pressed = QInputDialog.getItem(self, "Choose media type",
@@ -58,7 +78,7 @@ class MainWindow(QMainWindow):
     def open(self) -> None:
         # Getting the filename and the file extension
         global filename
-        filename = QFileDialog.getOpenFileName(self, 'Choose file', '',
+        filename = QFileDialog.getOpenFileName(self, "Choose file", '',
                                                'Text Document (*.txt);;HTML Document (*.html);;'
                                                'HTML Document (*.htm);;Image (*.png);;'
                                                'Image (*.jpg);;Image (*.bmp);;Image (*.gif);;'
@@ -69,7 +89,7 @@ class MainWindow(QMainWindow):
 
         # Guessing what editor the user wants to open
         if extension in TEXT_EXTENSIONS or extension in HTML_EXTENSIONS \
-                and QMessageBox.question(self, 'File type guess',
+                and QMessageBox.question(self, "File type guess",
                                          "Do you want to edit a text document?",
                                          QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
             windows.setCurrentIndex(1)
@@ -115,6 +135,8 @@ class MainWindow(QMainWindow):
                 temporary_file_name = audio_editing_window.temporary_file.name
                 sf.write(temporary_file_name, audio_editing_window.waveform,
                          audio_editing_window.stream_rate, 'PCM_24')
+                audio_editing_window.temporary_file_names.append(temporary_file_name)
+
                 windows.setCurrentIndex(3)
             except:
                 error_message = QErrorMessage(self)
@@ -157,15 +179,8 @@ class MainWindow(QMainWindow):
                         windows.setCurrentIndex(2)
 
                     elif file_type == "Audio":
-                        # Creating a temporary file
-                        audio_editing_window.temporary_file = NamedTemporaryFile(suffix='.wav',
-                                                                                 delete=False)
-                        temporary_file_name = audio_editing_window.temporary_file.name
-                        sf.write(temporary_file_name, audio_editing_window.waveform,
-                                 audio_editing_window.stream_rate, 'PCM_24')
-
                         # Loading the audio
-                        url = QUrl.fromLocalFile(temporary_file_name)
+                        url = QUrl.fromLocalFile(filename)
                         content = QMediaContent(url)
                         audio_editing_window.player.setMedia(content)
 
@@ -174,6 +189,15 @@ class MainWindow(QMainWindow):
                                 audio_editing_window.original_stream_rate = librosa.load(filename)
                             audio_editing_window.stream_rate \
                                 = audio_editing_window.original_stream_rate
+
+                            # Creating a temporary file
+                            audio_editing_window.temporary_file = NamedTemporaryFile(suffix='.wav',
+                                                                                     delete=False)
+                            temporary_file_name = audio_editing_window.temporary_file.name
+                            sf.write(temporary_file_name, audio_editing_window.waveform,
+                                     audio_editing_window.stream_rate, 'PCM_24')
+                            audio_editing_window.temporary_file_names.append(temporary_file_name)
+
                             windows.setCurrentIndex(3)
 
                         except:
@@ -194,7 +218,7 @@ class TextEditingWindow(QMainWindow):
         self.open_btn.clicked.connect(self.open)
         self.save_btn.clicked.connect(self.save)
         self.save_as_btn.clicked.connect(self.save_as)
-        self.home_btn.clicked.connect(return_home)
+        self.home_btn.clicked.connect(self.return_home)
 
         self.font_combo_box.currentFontChanged.connect(self.change_font)
 
@@ -248,6 +272,16 @@ class TextEditingWindow(QMainWindow):
             with open(filename, 'w', encoding='utf-8') as dest_file:
                 dest_file.write(self.text_edit.toPlainText())
 
+    def return_home(self) -> None:
+        global filename
+
+        answer = QMessageBox.question(self, "Confirm exit",
+                                      "Are you sure you want to exit the text editor?",
+                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if answer == QMessageBox.Yes:
+            filename = ''
+            windows.setCurrentIndex(0)
+
     def keyPressEvent(self, event: QKeyEvent) -> None:
         if int(event.modifiers()) == Qt.ControlModifier and event.key() == Qt.Key_S:
             # "Ctrl" + "S" shortcut to save the file
@@ -295,25 +329,6 @@ class TextEditingWindow(QMainWindow):
             self.text_edit.setCurrentFont(font)
 
 
-class ChooseImageSizeDialog(QDialog):
-    def __init__(self):
-        super(ChooseImageSizeDialog, self).__init__()
-        uic.loadUi(os.path.abspath('designs/choose_size_dialog.ui'), self)
-
-        self.unit_combo_box.currentTextChanged.connect(self.set_default_width_and_height)
-
-    def set_default_width_and_height(self):
-        if self.sender().currentText() == "in":
-            self.width_spin_box.setValue(7)
-            self.height_spin_box.setValue(5)
-        elif self.sender().currentText() == "px":
-            self.width_spin_box.setValue(2100)
-            self.height_spin_box.setValue(1500)
-        elif self.sender().currentText() == "cm":
-            self.width_spin_box.setValue(18)
-            self.height_spin_box.setValue(13)
-
-
 class ImageEditingWindow(QMainWindow):
     def __init__(self):
         super(ImageEditingWindow, self).__init__()
@@ -340,7 +355,7 @@ class ImageEditingWindow(QMainWindow):
         self.open_btn.clicked.connect(self.open)
         self.save_btn.clicked.connect(self.save)
         self.save_as_btn.clicked.connect(self.save_as)
-        self.home_btn.clicked.connect(return_home)
+        self.home_btn.clicked.connect(self.return_home)
 
         self.filter_combo_box.currentTextChanged.connect(self.change_filter)
         self.brush_size_spin_box.valueChanged.connect(self.change_brush_size)
@@ -406,7 +421,6 @@ class ImageEditingWindow(QMainWindow):
         # Create a temporary file in the main.py's directory
         self.temporary_file = NamedTemporaryFile(suffix='.jpg', delete=False)
         self.image.pixmap().save(self.temporary_file.name)
-        print(self.temporary_file.name)
 
         filename = ''
 
@@ -420,7 +434,17 @@ class ImageEditingWindow(QMainWindow):
                                                    'Image (*.svg);;Image (*.xbm);;All Files (*)')[0]
 
         if new_filename:
-            # If the user didn't click "Cancel", displaying the image from the opened file
+            # If the user didn't click "Cancel":
+            # Creating a temporary file with the opened image for the unsaved changes
+            image_editing_window.temporary_file = NamedTemporaryFile(suffix='.jpg',
+                                                                     delete=False)
+            temporary_file_name = image_editing_window.temporary_file.name
+            temporary_file_extension = temporary_file_name[
+                                       temporary_file_name.rfind('.')::][1::].upper()
+            image_editing_window.image.pixmap().save(temporary_file_name,
+                                                     temporary_file_extension)
+
+            # Displaying the image from the opened file
             filename = new_filename
             image_editing_window.image.setPixmap(QPixmap(filename)
                                                  .scaled(620, 470, Qt.KeepAspectRatio))
@@ -436,6 +460,12 @@ class ImageEditingWindow(QMainWindow):
             self.image.pixmap().save(filename, extension)
             self.is_saved = True
 
+            # Deleting the created temporary file
+            if self.temporary_file is not None:
+                self.temporary_file.close()
+                os.unlink(self.temporary_file.name)
+                self.temporary_file = None
+
     def save_as(self) -> None:
         global filename
 
@@ -450,6 +480,29 @@ class ImageEditingWindow(QMainWindow):
             extension = filename[filename.rfind('.')::][1::].upper()
             self.image.pixmap().save(filename, extension)
             self.is_saved = True
+
+            # Deleting the created temporary file
+            if self.temporary_file is not None:
+                self.temporary_file.close()
+                os.unlink(self.temporary_file.name)
+                self.temporary_file = None
+
+    def return_home(self) -> None:
+        global filename
+
+        answer = QMessageBox.question(self, "Confirm exit",
+                                      "Are you sure you want to exit the image editor?",
+                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if answer == QMessageBox.Yes:
+            filename = ''
+
+            # Deleting the created temporary file if the image isn't saved
+            if self.temporary_file is not None:
+                self.temporary_file.close()
+                os.unlink(self.temporary_file.name)
+                self.temporary_file = None
+
+        windows.setCurrentIndex(0)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
         if (self.select_btn.isChecked() or self.crop_btn.isChecked()) \
@@ -710,22 +763,17 @@ class ImageEditingWindow(QMainWindow):
             self.sender().setStyleSheet(f"background-color: {color.name()}")
 
 
-class CropAudioDialog(QDialog):
-    def __init__(self):
-        super(CropAudioDialog, self).__init__()
-        uic.loadUi(os.path.abspath('designs/crop_audio_dialog.ui'), self)
-
-
 class AudioEditingWindow(QMainWindow):
     def __init__(self):
         super(AudioEditingWindow, self).__init__()
         uic.loadUi(os.path.abspath('designs/audio_editor_window.ui'), self)
+
         self.player = QMediaPlayer()
 
         self.open_btn.clicked.connect(self.open)
         self.save_btn.clicked.connect(self.save)
         self.save_as_btn.clicked.connect(self.save_as)
-        self.home_btn.clicked.connect(return_home)
+        self.home_btn.clicked.connect(self.return_home)
 
         self.play_pause_btn.clicked.connect(self.play)
         self.stop_btn.clicked.connect(self.stop)
@@ -735,6 +783,7 @@ class AudioEditingWindow(QMainWindow):
         self.crop_btn.clicked.connect(self.crop)
 
         self.temporary_file = None
+        self.temporary_file_names = list()
 
         self.waveform = None
         self.stream_rate = None
@@ -789,6 +838,13 @@ class AudioEditingWindow(QMainWindow):
                 filename = filename[:filename.rfind('.'):] + ".wav"
                 sf.write(filename, self.waveform, self.stream_rate, 'PCM_24')
 
+        # Deleting all the created temporary files
+        if self.temporary_file is not None:
+            self.temporary_file.close()
+            for temporary_file_name in self.temporary_file_names:
+                os.unlink(temporary_file_name)
+            self.temporary_file = None
+
     def save_as(self):
         global filename
 
@@ -809,6 +865,32 @@ class AudioEditingWindow(QMainWindow):
                 It'll be saved in '.wav' format.""")
                 filename = filename[:filename.rfind('.'):] + ".wav"
                 sf.write(filename, self.waveform, self.stream_rate, 'PCM_24')
+
+            # Deleting all the created temporary files
+            if self.temporary_file is not None:
+                self.temporary_file.close()
+                for temporary_file_name in self.temporary_file_names:
+                    os.unlink(temporary_file_name)
+                self.temporary_file = None
+
+    def return_home(self) -> None:
+        global filename
+
+        answer = QMessageBox.question(self, "Confirm exit",
+                                      "Are you sure you want to exit the audio editor?",
+                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if answer == QMessageBox.Yes:
+
+            filename = ''
+
+            # Deleting all the created temporary files if the audio isn't saved
+            if self.temporary_file is not None:
+                self.temporary_file.close()
+                for temporary_file_name in self.temporary_file_names:
+                    os.unlink(temporary_file_name)
+                self.temporary_file = None
+
+            windows.setCurrentIndex(0)
 
     def play(self) -> None:
         if self.player.state() == QMediaPlayer.PlayingState:
@@ -843,6 +925,7 @@ class AudioEditingWindow(QMainWindow):
         # Creating a new temporary file
         self.temporary_file = NamedTemporaryFile(suffix='.wav', delete=False)
         sf.write(self.temporary_file.name, self.waveform, self.stream_rate, 'PCM_24')
+        self.temporary_file_names.append(self.temporary_file.name)
 
     def crop(self):
         # Creating a dialog to ask the user about the positions of the start and the end of the song
@@ -877,13 +960,32 @@ class AudioEditingWindow(QMainWindow):
                 # Creating a new temporary file
                 self.temporary_file = NamedTemporaryFile(suffix='.wav', delete=False)
                 sf.write(self.temporary_file.name, self.waveform, self.stream_rate, 'PCM_24')
+                self.temporary_file_names.append(self.temporary_file.name)
 
 
-def return_home() -> None:
-    global filename
+class ChooseImageSizeDialog(QDialog):
+    def __init__(self):
+        super(ChooseImageSizeDialog, self).__init__()
+        uic.loadUi(os.path.abspath('designs/choose_size_dialog.ui'), self)
 
-    filename = ''
-    windows.setCurrentIndex(0)
+        self.unit_combo_box.currentTextChanged.connect(self.set_default_width_and_height)
+
+    def set_default_width_and_height(self):
+        if self.sender().currentText() == "in":
+            self.width_spin_box.setValue(7)
+            self.height_spin_box.setValue(5)
+        elif self.sender().currentText() == "px":
+            self.width_spin_box.setValue(2100)
+            self.height_spin_box.setValue(1500)
+        elif self.sender().currentText() == "cm":
+            self.width_spin_box.setValue(18)
+            self.height_spin_box.setValue(13)
+
+
+class CropAudioDialog(QDialog):
+    def __init__(self):
+        super(CropAudioDialog, self).__init__()
+        uic.loadUi(os.path.abspath('designs/crop_audio_dialog.ui'), self)
 
 
 if __name__ == '__main__':
@@ -909,6 +1011,7 @@ if __name__ == '__main__':
     windows.setFixedWidth(800)
     windows.setWindowTitle("Media Editor")
     windows.setWindowIcon(QIcon('designs/icons/window_icon.jpg'))
+    windows.closeEvent = main_window.closeEvent
 
     windows.show()
     app.installEventFilter(image_editing_window)
