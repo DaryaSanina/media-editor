@@ -292,7 +292,16 @@ class TextEditingWindow(QMainWindow):
             self.save_as()
 
     def change_font(self, font: QFont) -> None:
+        if self.strikeout_btn.isChecked():
+            font.setStrikeOut(True)
         self.text_edit.setCurrentFont(font)
+        if self.bold_btn.isChecked():
+            self.text_edit.setFontWeight(QFont.Bold)
+        if self.italic_btn.isChecked():
+            self.text_edit.setFontItalic(True)
+        if self.underline_btn.isChecked():
+            self.text_edit.setFontUnderline(True)
+        self.text_edit.setFontPointSize(self.font_size_spin_box.value())
 
     def change_font_point_size(self, font_point_size: int) -> None:
         self.text_edit.setFontPointSize(font_point_size)
@@ -327,6 +336,13 @@ class TextEditingWindow(QMainWindow):
         else:
             font.setStrikeOut(False)
             self.text_edit.setCurrentFont(font)
+        if self.bold_btn.isChecked():
+            self.text_edit.setFontWeight(QFont.Bold)
+        if self.italic_btn.isChecked():
+            self.text_edit.setFontItalic(True)
+        if self.underline_btn.isChecked():
+            self.text_edit.setFontUnderline(True)
+        self.text_edit.setFontPointSize(self.font_size_spin_box.value())
 
 
 class ImageEditingWindow(QMainWindow):
