@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>804</width>
-    <height>610</height>
+    <width>802</width>
+    <height>607</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -72,10 +72,10 @@
    <widget class="QPushButton" name="open_btn">
     <property name="geometry">
      <rect>
-      <x>165</x>
+      <x>170</x>
       <y>10</y>
       <width>150</width>
-      <height>60</height>
+      <height>70</height>
      </rect>
     </property>
     <property name="styleSheet">
@@ -135,10 +135,10 @@
    <widget class="QPushButton" name="save_btn">
     <property name="geometry">
      <rect>
-      <x>325</x>
+      <x>330</x>
       <y>10</y>
       <width>150</width>
-      <height>60</height>
+      <height>70</height>
      </rect>
     </property>
     <property name="styleSheet">
@@ -151,10 +151,10 @@
    <widget class="QPushButton" name="save_as_btn">
     <property name="geometry">
      <rect>
-      <x>485</x>
+      <x>490</x>
       <y>10</y>
       <width>150</width>
-      <height>60</height>
+      <height>70</height>
      </rect>
     </property>
     <property name="styleSheet">
@@ -247,10 +247,10 @@
    <widget class="QLabel" name="loading_label">
     <property name="geometry">
      <rect>
-      <x>20</x>
-      <y>25</y>
+      <x>350</x>
+      <y>520</y>
       <width>100</width>
-      <height>30</height>
+      <height>35</height>
      </rect>
     </property>
     <property name="font">
@@ -268,13 +268,63 @@
      <set>Qt::AlignCenter</set>
     </property>
    </widget>
+   <widget class="QPushButton" name="undo_btn">
+    <property name="enabled">
+     <bool>false</bool>
+    </property>
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>10</y>
+      <width>70</width>
+      <height>70</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: white</string>
+    </property>
+    <property name="text">
+     <string>Undo</string>
+    </property>
+    <property name="checkable">
+     <bool>false</bool>
+    </property>
+    <property name="autoExclusive">
+     <bool>false</bool>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="redo_btn">
+    <property name="enabled">
+     <bool>false</bool>
+    </property>
+    <property name="geometry">
+     <rect>
+      <x>90</x>
+      <y>10</y>
+      <width>70</width>
+      <height>70</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: white</string>
+    </property>
+    <property name="text">
+     <string>Redo</string>
+    </property>
+    <property name="checkable">
+     <bool>false</bool>
+    </property>
+    <property name="autoExclusive">
+     <bool>false</bool>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>804</width>
+     <width>802</width>
      <height>18</height>
     </rect>
    </property>
