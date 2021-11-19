@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>804</width>
-    <height>614</height>
+    <width>806</width>
+    <height>621</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -20,10 +20,10 @@
    <widget class="QPushButton" name="new_btn">
     <property name="geometry">
      <rect>
-      <x>10</x>
+      <x>170</x>
       <y>10</y>
-      <width>150</width>
-      <height>60</height>
+      <width>120</width>
+      <height>70</height>
      </rect>
     </property>
     <property name="styleSheet">
@@ -36,10 +36,10 @@
    <widget class="QPushButton" name="open_btn">
     <property name="geometry">
      <rect>
-      <x>170</x>
+      <x>300</x>
       <y>10</y>
-      <width>150</width>
-      <height>60</height>
+      <width>120</width>
+      <height>70</height>
      </rect>
     </property>
     <property name="styleSheet">
@@ -52,10 +52,10 @@
    <widget class="QPushButton" name="save_btn">
     <property name="geometry">
      <rect>
-      <x>330</x>
+      <x>430</x>
       <y>10</y>
-      <width>150</width>
-      <height>60</height>
+      <width>120</width>
+      <height>70</height>
      </rect>
     </property>
     <property name="styleSheet">
@@ -68,10 +68,10 @@
    <widget class="QPushButton" name="save_as_btn">
     <property name="geometry">
      <rect>
-      <x>490</x>
+      <x>560</x>
       <y>10</y>
-      <width>150</width>
-      <height>60</height>
+      <width>120</width>
+      <height>70</height>
      </rect>
     </property>
     <property name="styleSheet">
@@ -85,7 +85,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>80</y>
+      <y>90</y>
       <width>70</width>
       <height>70</height>
      </rect>
@@ -107,7 +107,7 @@
     <property name="geometry">
      <rect>
       <x>90</x>
-      <y>80</y>
+      <y>90</y>
       <width>70</width>
       <height>70</height>
      </rect>
@@ -132,7 +132,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>230</y>
+      <y>240</y>
       <width>70</width>
       <height>70</height>
      </rect>
@@ -154,7 +154,7 @@
     <property name="geometry">
      <rect>
       <x>90</x>
-      <y>230</y>
+      <y>240</y>
       <width>70</width>
       <height>70</height>
      </rect>
@@ -170,7 +170,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>400</y>
+      <y>410</y>
       <width>70</width>
       <height>70</height>
      </rect>
@@ -192,7 +192,7 @@
     <property name="geometry">
      <rect>
       <x>90</x>
-      <y>400</y>
+      <y>410</y>
       <width>70</width>
       <height>70</height>
      </rect>
@@ -214,7 +214,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>480</y>
+      <y>490</y>
       <width>70</width>
       <height>70</height>
      </rect>
@@ -236,7 +236,7 @@
     <property name="geometry">
      <rect>
       <x>90</x>
-      <y>480</y>
+      <y>490</y>
       <width>70</width>
       <height>70</height>
      </rect>
@@ -258,7 +258,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>160</y>
+      <y>170</y>
       <width>150</width>
       <height>60</height>
      </rect>
@@ -339,7 +339,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>310</y>
+      <y>320</y>
       <width>70</width>
       <height>20</height>
      </rect>
@@ -360,7 +360,7 @@
     <property name="geometry">
      <rect>
       <x>90</x>
-      <y>310</y>
+      <y>320</y>
       <width>70</width>
       <height>20</height>
      </rect>
@@ -381,7 +381,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>340</y>
+      <y>350</y>
       <width>70</width>
       <height>50</height>
      </rect>
@@ -408,7 +408,7 @@
     <property name="geometry">
      <rect>
       <x>90</x>
-      <y>340</y>
+      <y>350</y>
       <width>70</width>
       <height>50</height>
      </rect>
@@ -439,8 +439,8 @@
      <rect>
       <x>720</x>
       <y>10</y>
-      <width>60</width>
-      <height>60</height>
+      <width>70</width>
+      <height>70</height>
      </rect>
     </property>
     <property name="styleSheet">
@@ -450,13 +450,60 @@
      <string>Home</string>
     </property>
    </widget>
+   <widget class="QPushButton" name="undo_btn">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>10</y>
+      <width>70</width>
+      <height>70</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: white</string>
+    </property>
+    <property name="text">
+     <string>Undo</string>
+    </property>
+    <property name="checkable">
+     <bool>false</bool>
+    </property>
+    <property name="autoExclusive">
+     <bool>false</bool>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="redo_btn">
+    <property name="enabled">
+     <bool>false</bool>
+    </property>
+    <property name="geometry">
+     <rect>
+      <x>90</x>
+      <y>10</y>
+      <width>70</width>
+      <height>70</height>
+     </rect>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: white</string>
+    </property>
+    <property name="text">
+     <string>Redo</string>
+    </property>
+    <property name="checkable">
+     <bool>false</bool>
+    </property>
+    <property name="autoExclusive">
+     <bool>false</bool>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>804</width>
+     <width>806</width>
      <height>18</height>
     </rect>
    </property>

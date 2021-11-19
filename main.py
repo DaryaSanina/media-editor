@@ -121,28 +121,29 @@ class MainWindow(QMainWindow):
                                          "Do you want to edit an audio file?",
                                          QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
             # Loading the audio
-
             url = QUrl.fromLocalFile(filename)
             content = QMediaContent(url)
             audio_editing_window.player.setMedia(content)
 
             try:
-                audio_editing_window.waveform, \
-                audio_editing_window.original_stream_rate = librosa.load(filename)
-                audio_editing_window.stream_rate \
+                audio_editing_window.cur_waveform, \
+                    audio_editing_window.original_stream_rate = librosa.load(filename)
+                audio_editing_window.cur_stream_rate \
                     = audio_editing_window.original_stream_rate
 
                 # Creating a temporary file with the audio for the unsaved changes
                 audio_editing_window.delete_temporary_files(
                     audio_editing_window.temporary_file_names)
 
-                audio_editing_window.temporary_file = NamedTemporaryFile(suffix='.wav',
-                                                                         delete=False)
-                temporary_file_name = audio_editing_window.temporary_file.name
-                sf.write(temporary_file_name, audio_editing_window.waveform,
-                         audio_editing_window.stream_rate, 'PCM_24')
+                audio_editing_window.cur_temporary_file = NamedTemporaryFile(suffix='.wav',
+                                                                             delete=False)
+                temporary_file_name = audio_editing_window.cur_temporary_file.name
+                sf.write(temporary_file_name, audio_editing_window.cur_waveform,
+                         audio_editing_window.cur_stream_rate, 'PCM_24')
 
                 audio_editing_window.temporary_file_names = [temporary_file_name]
+                audio_editing_window.waveforms = [audio_editing_window.cur_waveform]
+                audio_editing_window.stream_rates = [audio_editing_window.cur_stream_rate]
                 audio_editing_window.temporary_file_index = 0
 
                 windows.setCurrentIndex(3)
@@ -197,23 +198,26 @@ class MainWindow(QMainWindow):
                         audio_editing_window.player.setMedia(content)
 
                         try:
-                            audio_editing_window.waveform, \
+                            audio_editing_window.cur_waveform, \
                             audio_editing_window.original_stream_rate = librosa.load(filename)
-                            audio_editing_window.stream_rate \
+                            audio_editing_window.cur_stream_rate \
                                 = audio_editing_window.original_stream_rate
 
                             # Creating a temporary file with the audio for the unsaved changes
                             audio_editing_window.delete_temporary_files(
                                 audio_editing_window.temporary_file_names)
 
-                            audio_editing_window.temporary_file = NamedTemporaryFile(suffix='.wav',
-                                                                                     delete=False)
-                            temporary_file_name = audio_editing_window.temporary_file.name
-                            sf.write(temporary_file_name, audio_editing_window.waveform,
-                                     audio_editing_window.stream_rate, 'PCM_24')
-                            audio_editing_window.temporary_file_names.append(temporary_file_name)
+                            audio_editing_window.cur_temporary_file = NamedTemporaryFile(
+                                suffix='.wav',
+                                delete=False)
+                            temporary_file_name = audio_editing_window.cur_temporary_file.name
+                            sf.write(temporary_file_name, audio_editing_window.cur_waveform,
+                                     audio_editing_window.cur_stream_rate, 'PCM_24')
 
                             audio_editing_window.temporary_file_names = [temporary_file_name]
+                            audio_editing_window.waveforms = [audio_editing_window.cur_waveform]
+                            audio_editing_window.stream_rates = [
+                                audio_editing_window.cur_stream_rate]
                             audio_editing_window.temporary_file_index = 0
 
                             windows.setCurrentIndex(3)
@@ -823,12 +827,14 @@ class AudioEditingWindow(QMainWindow):
         self.pace_slider.valueChanged.connect(self.change_pace)
         self.crop_btn.clicked.connect(self.crop)
 
-        self.temporary_file = None
         self.temporary_file_names = list()
+        self.waveforms = list()
+        self.stream_rates = list()
         self.temporary_file_index = 0
 
-        self.waveform = None
-        self.stream_rate = None
+        self.cur_temporary_file = None
+        self.cur_waveform = None
+        self.cur_stream_rate = None
         self.original_stream_rate = None
 
     def open(self):
@@ -851,17 +857,20 @@ class AudioEditingWindow(QMainWindow):
             self.player.setMedia(content)
 
             try:
-                self.waveform, \
-                self.original_stream_rate = librosa.load(filename)
-                self.stream_rate = self.original_stream_rate
+                self.cur_waveform, \
+                    self.original_stream_rate = librosa.load(filename)
+                self.cur_stream_rate = self.original_stream_rate
 
                 # Creating a temporary file
                 self.delete_temporary_files(self.temporary_file_names)
 
-                self.temporary_file = NamedTemporaryFile(suffix='.wav', delete=False)
-                sf.write(self.temporary_file.name, self.waveform, self.stream_rate, 'PCM_24')
+                self.cur_temporary_file = NamedTemporaryFile(suffix='.wav', delete=False)
+                sf.write(self.cur_temporary_file.name, self.cur_waveform, self.cur_stream_rate,
+                         'PCM_24')
 
-                self.temporary_file_names = [self.temporary_file.name]
+                self.temporary_file_names = [self.cur_temporary_file.name]
+                self.waveforms = [self.cur_waveform]
+                self.stream_rates = [self.cur_stream_rate]
                 self.temporary_file_index = 0
 
                 self.undo_btn.setEnabled(False)
@@ -884,13 +893,14 @@ class AudioEditingWindow(QMainWindow):
             if extension in sf.available_formats() \
                     and filename[filename.rfind('.')::] in AUDIO_EXTENSIONS:
                 # If current format is available to save with soundfile:
-                sf.write(filename, self.waveform, self.stream_rate, 'PCM_24', format=extension)
+                sf.write(filename, self.cur_waveform, self.cur_stream_rate, 'PCM_24',
+                         format=extension)
             else:
                 error_message = QErrorMessage(self)
                 error_message.showMessage("""Couldn't save the file in the chosen format.
                             It'll be saved in '.wav' format.""")
                 filename = filename[:filename.rfind('.'):] + ".wav"
-                sf.write(filename, self.waveform, self.stream_rate, 'PCM_24')
+                sf.write(filename, self.cur_waveform, self.cur_stream_rate, 'PCM_24')
 
     def save_as(self):
         global filename
@@ -905,13 +915,14 @@ class AudioEditingWindow(QMainWindow):
             if extension in sf.available_formats() \
                     and filename[filename.rfind('.')::] in AUDIO_EXTENSIONS:
                 # If current format is available to save with soundfile:
-                sf.write(filename, self.waveform, self.stream_rate, 'PCM_24', format=extension)
+                sf.write(filename, self.cur_waveform, self.cur_stream_rate, 'PCM_24',
+                         format=extension)
             else:
                 error_message = QErrorMessage(self)
                 error_message.showMessage("""Couldn't save the file in the chosen format.
                 It'll be saved in '.wav' format.""")
                 filename = filename[:filename.rfind('.'):] + ".wav"
-                sf.write(filename, self.waveform, self.stream_rate, 'PCM_24')
+                sf.write(filename, self.cur_waveform, self.cur_stream_rate, 'PCM_24')
 
     def return_home(self) -> None:
         global filename
@@ -922,14 +933,17 @@ class AudioEditingWindow(QMainWindow):
         if answer == QMessageBox.Yes:
             filename = ''
             self.delete_temporary_files(self.temporary_file_names)
+            self.temporary_file_names = list()
+            self.waveforms = list()
+            self.stream_rates = list()
             windows.setCurrentIndex(0)
 
     def delete_temporary_files(self, filenames):
-        if self.temporary_file is not None:
-            self.temporary_file.close()
+        if self.cur_temporary_file is not None:
+            self.cur_temporary_file.close()
             for temporary_file_name in filenames:
                 os.unlink(temporary_file_name)
-            self.temporary_file = None
+            self.cur_temporary_file = None
 
     def play(self) -> None:
         if self.player.state() == QMediaPlayer.PlayingState:
@@ -951,15 +965,17 @@ class AudioEditingWindow(QMainWindow):
         self.temporary_file_index -= 1
 
         # Updating the player
-        self.temporary_file.close()
+        self.cur_temporary_file.close()
         self.player = QMediaPlayer()
         url = QUrl.fromLocalFile(self.temporary_file_names[self.temporary_file_index])
         content = QMediaContent(url)
         self.player.setMedia(content)
 
-        # Updating the temporary_file to the current temporary file
-        self.temporary_file = open(self.temporary_file_names[self.temporary_file_index])
-        self.temporary_file.close()
+        # Updating cur_temporary_file, cur_waveform and cur_stream_rate
+        self.cur_temporary_file = open(self.temporary_file_names[self.temporary_file_index])
+        self.cur_temporary_file.close()
+        self.cur_waveform = self.waveforms[self.temporary_file_index]
+        self.cur_stream_rate = self.stream_rates[self.temporary_file_index]
 
         if self.temporary_file_index <= 0:
             self.undo_btn.setEnabled(False)
@@ -970,15 +986,17 @@ class AudioEditingWindow(QMainWindow):
         self.temporary_file_index += 1
 
         # Updating the player
-        self.temporary_file.close()
+        self.cur_temporary_file.close()
         self.player = QMediaPlayer()
         url = QUrl.fromLocalFile(self.temporary_file_names[self.temporary_file_index])
         content = QMediaContent(url)
         self.player.setMedia(content)
 
-        # Updating the temporary_file to the current temporary file
-        self.temporary_file = open(self.temporary_file_names[self.temporary_file_index])
-        self.temporary_file.close()
+        # Updating cur_temporary_file, cur_waveform and cur_stream_rate
+        self.cur_temporary_file = open(self.temporary_file_names[self.temporary_file_index])
+        self.cur_temporary_file.close()
+        self.cur_waveform = self.waveforms[self.temporary_file_index]
+        self.cur_stream_rate = self.stream_rates[self.temporary_file_index]
 
         if self.temporary_file_index >= len(self.temporary_file_names) - 1:
             self.redo_btn.setEnabled(False)
@@ -987,29 +1005,33 @@ class AudioEditingWindow(QMainWindow):
 
     def change_pace(self, pace_slider_position: int) -> None:
         # Updating the stream rate
-        self.stream_rate = int(self.original_stream_rate * (pace_slider_position / 50))
+        self.cur_stream_rate = int(self.original_stream_rate * (pace_slider_position / 50))
 
         # Deleting all the temporary files after current index
         if self.temporary_file_index < len(self.temporary_file_names) - 1:
-            if self.temporary_file is not None:
+            if self.cur_temporary_file is not None:
                 for temporary_file_name in \
                         self.temporary_file_names[self.temporary_file_index + 1::]:
                     try:
                         os.unlink(temporary_file_name)
                     except PermissionError:
-                        self.temporary_file.close()
+                        self.cur_temporary_file.close()
                         os.unlink(temporary_file_name)
             self.temporary_file_names = self.temporary_file_names[:self.temporary_file_index + 1:]
+            self.waveforms = self.waveforms[:self.temporary_file_index + 1:]
+            self.stream_rates = self.stream_rates[:self.temporary_file_index + 1:]
 
         # Creating a new temporary file
-        self.temporary_file = NamedTemporaryFile(suffix='.wav', delete=False)
-        sf.write(self.temporary_file.name, self.waveform, self.stream_rate, 'PCM_24')
-        self.temporary_file_names.append(self.temporary_file.name)
-        self.temporary_file.close()
+        self.cur_temporary_file = NamedTemporaryFile(suffix='.wav', delete=False)
+        sf.write(self.cur_temporary_file.name, self.cur_waveform, self.cur_stream_rate, 'PCM_24')
+        self.temporary_file_names.append(self.cur_temporary_file.name)
+        self.waveforms.append(self.cur_waveform)
+        self.stream_rates.append(self.cur_stream_rate)
+        self.cur_temporary_file.close()
 
         # Updating the player
         self.player = QMediaPlayer()
-        url = QUrl.fromLocalFile(self.temporary_file.name)
+        url = QUrl.fromLocalFile(self.cur_temporary_file.name)
         content = QMediaContent(url)
         self.player.setMedia(content)
 
@@ -1037,33 +1059,38 @@ class AudioEditingWindow(QMainWindow):
                 error_message.showMessage("The audio file ends earlier than starts")
             else:
                 # Updating the waveform
-                start_waveform_pos = int(len(self.waveform) * (start_slider_pos / 100))
-                end_waveform_pos = int(len(self.waveform) * (end_slider_pos / 100))
-                self.waveform = np_array(list(self.waveform)
-                                         [start_waveform_pos:end_waveform_pos + 1:])
+                start_waveform_pos = int(len(self.cur_waveform) * (start_slider_pos / 100))
+                end_waveform_pos = int(len(self.cur_waveform) * (end_slider_pos / 100))
+                self.cur_waveform = np_array(list(self.cur_waveform)
+                                             [start_waveform_pos:end_waveform_pos + 1:])
 
                 # Deleting all the temporary files after current index
                 if self.temporary_file_index < len(self.temporary_file_names) - 1:
-                    if self.temporary_file is not None:
+                    if self.cur_temporary_file is not None:
                         for temporary_file_name in \
                                 self.temporary_file_names[self.temporary_file_index + 1::]:
                             try:
                                 os.unlink(temporary_file_name)
                             except PermissionError:
-                                self.temporary_file.close()
+                                self.cur_temporary_file.close()
                                 os.unlink(temporary_file_name)
                     self.temporary_file_names = self.temporary_file_names[
                                                 :self.temporary_file_index + 1:]
+                    self.waveforms = self.waveforms[:self.temporary_file_index + 1:]
+                    self.stream_rates = self.stream_rates[:self.temporary_file_index + 1:]
 
                 # Creating a new temporary file
-                self.temporary_file = NamedTemporaryFile(suffix='.wav', delete=False)
-                sf.write(self.temporary_file.name, self.waveform, self.stream_rate, 'PCM_24')
-                self.temporary_file_names.append(self.temporary_file.name)
-                self.temporary_file.close()
+                self.cur_temporary_file = NamedTemporaryFile(suffix='.wav', delete=False)
+                sf.write(self.cur_temporary_file.name, self.cur_waveform, self.cur_stream_rate,
+                         'PCM_24')
+                self.temporary_file_names.append(self.cur_temporary_file.name)
+                self.waveforms.append(self.cur_waveform)
+                self.stream_rates.append(self.cur_stream_rate)
+                self.cur_temporary_file.close()
 
                 # Updating the player
                 self.player = QMediaPlayer()
-                url = QUrl.fromLocalFile(self.temporary_file.name)
+                url = QUrl.fromLocalFile(self.cur_temporary_file.name)
                 content = QMediaContent(url)
                 self.player.setMedia(content)
 
@@ -1075,7 +1102,6 @@ class AudioEditingWindow(QMainWindow):
                 if self.redo_btn.isEnabled() \
                         and self.temporary_file_index == len(self.temporary_file_names) - 1:
                     self.redo_btn.setEnabled(False)
-                print(self.temporary_file_index)
 
 
 class ChooseImageSizeDialog(QDialog):
