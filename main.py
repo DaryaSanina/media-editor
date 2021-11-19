@@ -47,11 +47,11 @@ class MainWindow(QMainWindow):
         answer = QMessageBox.question(self, "Confirm exit", "Are you sure you want to exit?",
                                       QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if answer == QMessageBox.Yes:
-            if image_editing_window.temporary_file is not None:
+            if image_editing_window.cur_temporary_file is not None:
                 # If the user has edited an image, deleting the created image temporary file
-                image_editing_window.temporary_file.close()
-                os.unlink(image_editing_window.temporary_file.name)
-            audio_editing_window.delete_temporary_files(audio_editing_window.temporary_file_names)
+                image_editing_window.cur_temporary_file.close()
+                os.unlink(image_editing_window.cur_temporary_file.name)
+            audio_editing_window.delete_temporary_files()
             event.accept()
         else:
             event.ignore()
@@ -105,12 +105,13 @@ class MainWindow(QMainWindow):
             image_editing_window.is_saved = True
 
             # Creating a temporary file with the opened image for the unsaved changes
-            image_editing_window.temporary_file = NamedTemporaryFile(suffix='.jpg', delete=False)
-            temporary_file_name = image_editing_window.temporary_file.name
+            image_editing_window.cur_temporary_file = NamedTemporaryFile(suffix='.jpg', delete=False)
+            temporary_file_name = image_editing_window.cur_temporary_file.name
             temporary_file_extension = temporary_file_name[
                                        temporary_file_name.rfind('.')::][1::].upper()
             image_editing_window.image.pixmap().save(temporary_file_name,
                                                      temporary_file_extension)
+            image_editing_window.temporary_file_names.append(temporary_file_name)
 
             self.loading_label.hide()
 
@@ -132,8 +133,7 @@ class MainWindow(QMainWindow):
                     = audio_editing_window.original_stream_rate
 
                 # Creating a temporary file with the audio for the unsaved changes
-                audio_editing_window.delete_temporary_files(
-                    audio_editing_window.temporary_file_names)
+                audio_editing_window.delete_temporary_files()
 
                 audio_editing_window.cur_temporary_file = NamedTemporaryFile(suffix='.wav',
                                                                              delete=False)
@@ -181,13 +181,14 @@ class MainWindow(QMainWindow):
                         image_editing_window.is_saved = True
 
                         # Creating a temporary file with the opened image for the unsaved changes
-                        image_editing_window.temporary_file = NamedTemporaryFile(suffix='.jpg',
-                                                                                 delete=False)
-                        temporary_file_name = image_editing_window.temporary_file.name
+                        image_editing_window.cur_temporary_file = NamedTemporaryFile(suffix='.jpg',
+                                                                                     delete=False)
+                        temporary_file_name = image_editing_window.cur_temporary_file.name
                         temporary_file_extension = temporary_file_name[
                                                    temporary_file_name.rfind('.')::][1::].upper()
                         image_editing_window.image.pixmap().save(temporary_file_name,
                                                                  temporary_file_extension)
+                        image_editing_window.temporary_file_names.append(temporary_file_name)
 
                         windows.setCurrentIndex(2)
 
@@ -204,8 +205,7 @@ class MainWindow(QMainWindow):
                                 = audio_editing_window.original_stream_rate
 
                             # Creating a temporary file with the audio for the unsaved changes
-                            audio_editing_window.delete_temporary_files(
-                                audio_editing_window.temporary_file_names)
+                            audio_editing_window.delete_temporary_files()
 
                             audio_editing_window.cur_temporary_file = NamedTemporaryFile(
                                 suffix='.wav',
@@ -386,7 +386,9 @@ class ImageEditingWindow(QMainWindow):
         self.image_height = 0
 
         self.is_saved = False
-        self.temporary_file = None
+        self.cur_temporary_file = None
+        self.temporary_file_names = list()
+        self.temporary_file_index = 0
 
         self.pixmap_without_filters = None
 
@@ -398,6 +400,8 @@ class ImageEditingWindow(QMainWindow):
         self.save_btn.clicked.connect(self.save)
         self.save_as_btn.clicked.connect(self.save_as)
         self.home_btn.clicked.connect(self.return_home)
+        self.undo_btn.clicked.connect(self.undo)
+        self.redo_btn.clicked.connect(self.redo)
 
         self.filter_combo_box.currentTextChanged.connect(self.change_filter)
         self.brush_size_spin_box.valueChanged.connect(self.change_brush_size)
@@ -461,8 +465,10 @@ class ImageEditingWindow(QMainWindow):
         self.is_saved = False
 
         # Create a temporary file in the main.py's directory
-        self.temporary_file = NamedTemporaryFile(suffix='.jpg', delete=False)
-        self.image.pixmap().save(self.temporary_file.name)
+        self.cur_temporary_file = NamedTemporaryFile(suffix='.jpg', delete=False)
+        self.image.pixmap().save(self.cur_temporary_file.name)
+        self.temporary_file_names = [self.cur_temporary_file]
+        self.temporary_file_index = 0
 
         filename = ''
 
@@ -478,13 +484,15 @@ class ImageEditingWindow(QMainWindow):
         if new_filename:
             # If the user didn't click "Cancel":
             # Creating a temporary file with the opened image for the unsaved changes
-            image_editing_window.temporary_file = NamedTemporaryFile(suffix='.jpg',
-                                                                     delete=False)
-            temporary_file_name = image_editing_window.temporary_file.name
+            image_editing_window.cur_temporary_file = NamedTemporaryFile(suffix='.jpg',
+                                                                         delete=False)
+            temporary_file_name = image_editing_window.cur_temporary_file.name
             temporary_file_extension = temporary_file_name[
                                        temporary_file_name.rfind('.')::][1::].upper()
             image_editing_window.image.pixmap().save(temporary_file_name,
                                                      temporary_file_extension)
+            self.temporary_file_names = [self.cur_temporary_file.name]
+            self.temporary_file_index = 0
 
             # Displaying the image from the opened file
             filename = new_filename
@@ -503,10 +511,10 @@ class ImageEditingWindow(QMainWindow):
             self.is_saved = True
 
             # Deleting the created temporary file
-            if self.temporary_file is not None:
-                self.temporary_file.close()
-                os.unlink(self.temporary_file.name)
-                self.temporary_file = None
+            if self.cur_temporary_file is not None:
+                self.cur_temporary_file.close()
+                os.unlink(self.cur_temporary_file.name)
+                self.cur_temporary_file = None
 
     def save_as(self) -> None:
         global filename
@@ -524,10 +532,10 @@ class ImageEditingWindow(QMainWindow):
             self.is_saved = True
 
             # Deleting the created temporary file
-            if self.temporary_file is not None:
-                self.temporary_file.close()
-                os.unlink(self.temporary_file.name)
-                self.temporary_file = None
+            if self.cur_temporary_file is not None:
+                self.cur_temporary_file.close()
+                os.unlink(self.cur_temporary_file.name)
+                self.cur_temporary_file = None
 
     def return_home(self) -> None:
         global filename
@@ -539,12 +547,81 @@ class ImageEditingWindow(QMainWindow):
             filename = ''
 
             # Deleting the created temporary file if the image isn't saved
-            if self.temporary_file is not None:
-                self.temporary_file.close()
-                os.unlink(self.temporary_file.name)
-                self.temporary_file = None
+            if self.cur_temporary_file is not None:
+                self.cur_temporary_file.close()
+                os.unlink(self.cur_temporary_file.name)
+                self.delete_temporary_files()
+                self.temporary_file_names = list()
 
         windows.setCurrentIndex(0)
+
+    def delete_temporary_files(self):
+        if self.cur_temporary_file is not None:
+            self.cur_temporary_file.close()
+            for temporary_file_name in self.temporary_file_names:
+                os.unlink(temporary_file_name)
+            self.cur_temporary_file = None
+
+    def undo(self) -> None:
+        self.temporary_file_index -= 1
+
+        # Updating the pixmap
+        self.cur_temporary_file.close()
+        temporary_file_name = self.temporary_file_names[self.temporary_file_index]
+        self.image.setPixmap(QPixmap(temporary_file_name).scaled(620, 470, Qt.KeepAspectRatio))
+
+        # Updating cur_temporary_file
+        self.cur_temporary_file = open(self.temporary_file_names[self.temporary_file_index])
+        self.cur_temporary_file.close()
+
+        if self.temporary_file_index <= 0:
+            self.undo_btn.setEnabled(False)
+        if self.temporary_file_index < len(self.temporary_file_names):
+            self.redo_btn.setEnabled(True)
+
+    def redo(self) -> None:
+        self.temporary_file_index += 1
+
+        # Updating the pixmap
+        self.cur_temporary_file.close()
+        temporary_file_name = self.temporary_file_names[self.temporary_file_index]
+        self.image.setPixmap(QPixmap(temporary_file_name).scaled(620, 470, Qt.KeepAspectRatio))
+
+        # Updating cur_temporary_file
+        self.cur_temporary_file = open(self.temporary_file_names[self.temporary_file_index])
+        self.cur_temporary_file.close()
+
+        if self.temporary_file_index >= len(self.temporary_file_names) - 1:
+            self.redo_btn.setEnabled(False)
+        if self.temporary_file_index > 0:
+            self.undo_btn.setEnabled(True)
+
+    def update_temporary_files(self):
+        # Deleting all the temporary files after current index
+        if self.temporary_file_index < len(self.temporary_file_names) - 1:
+            if self.cur_temporary_file is not None:
+                for temporary_file_name in \
+                        self.temporary_file_names[self.temporary_file_index + 1::]:
+                    try:
+                        os.unlink(temporary_file_name)
+                    except PermissionError:
+                        self.cur_temporary_file.close()
+                        os.unlink(temporary_file_name)
+            self.temporary_file_names = self.temporary_file_names[:self.temporary_file_index + 1:]
+
+        # Creating a new temporary file
+        self.cur_temporary_file = NamedTemporaryFile(suffix='.jpg', delete=False)
+        self.image.pixmap().save(self.cur_temporary_file.name, 'JPG')
+        self.temporary_file_names.append(self.cur_temporary_file.name)
+        self.temporary_file_index += 1
+        self.cur_temporary_file.close()
+
+        if not self.undo_btn.isEnabled():
+            self.undo_btn.setEnabled(True)
+
+        if self.redo_btn.isEnabled() \
+                and self.temporary_file_index == len(self.temporary_file_names) - 1:
+            self.redo_btn.setEnabled(False)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
         if (self.select_btn.isChecked() or self.crop_btn.isChecked()) \
@@ -647,18 +724,19 @@ class ImageEditingWindow(QMainWindow):
             self.image_height = self.image.pixmap().height()
 
             self.is_saved = False
+            self.update_temporary_files()
 
             self.rubber_band.hide()
 
         elif self.is_drawing:
             self.is_drawing = False
             self.is_saved = False
-            self.image.pixmap().save(self.temporary_file.name)  # updating the temporary file
+            self.update_temporary_files()
 
         elif self.is_erasing:
             self.is_erasing = False
             self.is_saved = False
-            self.image.pixmap().save(self.temporary_file.name)  # updating the temporary file
+            self.update_temporary_files()
 
         elif self.is_drawing_line:
             # Creating a QPainter object with the opened image
@@ -670,7 +748,7 @@ class ImageEditingWindow(QMainWindow):
             self.update()
             self.is_drawing_line = False
             self.is_saved = False
-            self.image.pixmap().save(self.temporary_file.name)  # updating the temporary file
+            self.update_temporary_files()
 
         elif self.is_drawing_rectangle:
             # Creating a QPainter object with the opened image
@@ -683,7 +761,7 @@ class ImageEditingWindow(QMainWindow):
             self.update()
             self.is_drawing_rectangle = False
             self.is_saved = False
-            self.image.pixmap().save(self.temporary_file.name)  # updating the temporary file
+            self.update_temporary_files()
 
         elif self.is_drawing_ellipse:
             # Creating a QPainter object with the opened image
@@ -696,7 +774,7 @@ class ImageEditingWindow(QMainWindow):
             self.update()
             self.is_drawing_ellipse = False
             self.is_saved = False
-            self.image.pixmap().save(self.temporary_file.name)  # updating the temporary file
+            self.update_temporary_files()
 
     def paintEvent(self, event: QPaintEvent) -> None:
         self.image.resize(620, 470)
@@ -723,7 +801,7 @@ class ImageEditingWindow(QMainWindow):
             if self.is_saved:
                 pil_image = Image.open(filename)
             else:
-                pil_image = Image.open(self.temporary_file.name)
+                pil_image = Image.open(self.cur_temporary_file.name)
 
             # Applying the chosen filter
             if image_filter == "Clarendon":
@@ -788,7 +866,7 @@ class ImageEditingWindow(QMainWindow):
             self.image_height = pixmap.height()
             self.image.setPixmap(pixmap)
 
-            self.image.pixmap().save(self.temporary_file.name)  # updating the temporary file
+            self.update_temporary_files()
 
     def change_brush_size(self, size: float) -> None:
         self.brush_size = size
@@ -837,7 +915,7 @@ class AudioEditingWindow(QMainWindow):
         self.cur_stream_rate = None
         self.original_stream_rate = None
 
-    def open(self):
+    def open(self) -> None:
         global filename
 
         self.loading_label.show()
@@ -862,7 +940,7 @@ class AudioEditingWindow(QMainWindow):
                 self.cur_stream_rate = self.original_stream_rate
 
                 # Creating a temporary file
-                self.delete_temporary_files(self.temporary_file_names)
+                self.delete_temporary_files()
 
                 self.cur_temporary_file = NamedTemporaryFile(suffix='.wav', delete=False)
                 sf.write(self.cur_temporary_file.name, self.cur_waveform, self.cur_stream_rate,
@@ -882,7 +960,7 @@ class AudioEditingWindow(QMainWindow):
 
         self.loading_label.hide()
 
-    def save(self):
+    def save(self) -> None:
         global filename
 
         if not filename:  # if the file is new:
@@ -902,7 +980,7 @@ class AudioEditingWindow(QMainWindow):
                 filename = filename[:filename.rfind('.'):] + ".wav"
                 sf.write(filename, self.cur_waveform, self.cur_stream_rate, 'PCM_24')
 
-    def save_as(self):
+    def save_as(self) -> None:
         global filename
 
         # Getting the filename
@@ -932,16 +1010,16 @@ class AudioEditingWindow(QMainWindow):
                                       QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if answer == QMessageBox.Yes:
             filename = ''
-            self.delete_temporary_files(self.temporary_file_names)
+            self.delete_temporary_files()
             self.temporary_file_names = list()
             self.waveforms = list()
             self.stream_rates = list()
             windows.setCurrentIndex(0)
 
-    def delete_temporary_files(self, filenames):
+    def delete_temporary_files(self) -> None:
         if self.cur_temporary_file is not None:
             self.cur_temporary_file.close()
-            for temporary_file_name in filenames:
+            for temporary_file_name in self.temporary_file_names:
                 os.unlink(temporary_file_name)
             self.cur_temporary_file = None
 
@@ -961,7 +1039,7 @@ class AudioEditingWindow(QMainWindow):
     def change_volume(self, volume_slider_position: int) -> None:
         self.player.setVolume(volume_slider_position)
 
-    def undo(self):
+    def undo(self) -> None:
         self.temporary_file_index -= 1
 
         # Updating the player
@@ -982,7 +1060,7 @@ class AudioEditingWindow(QMainWindow):
         if self.temporary_file_index < len(self.temporary_file_names):
             self.redo_btn.setEnabled(True)
 
-    def redo(self):
+    def redo(self) -> None:
         self.temporary_file_index += 1
 
         # Updating the player
@@ -1003,10 +1081,7 @@ class AudioEditingWindow(QMainWindow):
         if self.temporary_file_index > 0:
             self.undo_btn.setEnabled(True)
 
-    def change_pace(self, pace_slider_position: int) -> None:
-        # Updating the stream rate
-        self.cur_stream_rate = int(self.original_stream_rate * (pace_slider_position / 50))
-
+    def update_player_and_temporary_files(self):
         # Deleting all the temporary files after current index
         if self.temporary_file_index < len(self.temporary_file_names) - 1:
             if self.cur_temporary_file is not None:
@@ -1044,6 +1119,12 @@ class AudioEditingWindow(QMainWindow):
                 and self.temporary_file_index == len(self.temporary_file_names) - 1:
             self.redo_btn.setEnabled(False)
 
+    def change_pace(self, pace_slider_position: int) -> None:
+        # Updating the stream rate
+        self.cur_stream_rate = int(self.original_stream_rate * (pace_slider_position / 50))
+
+        self.update_player_and_temporary_files()
+
     def crop(self):
         # Creating a dialog to ask the user about the positions of the start and the end of the song
         dialog = CropAudioDialog()
@@ -1064,44 +1145,7 @@ class AudioEditingWindow(QMainWindow):
                 self.cur_waveform = np_array(list(self.cur_waveform)
                                              [start_waveform_pos:end_waveform_pos + 1:])
 
-                # Deleting all the temporary files after current index
-                if self.temporary_file_index < len(self.temporary_file_names) - 1:
-                    if self.cur_temporary_file is not None:
-                        for temporary_file_name in \
-                                self.temporary_file_names[self.temporary_file_index + 1::]:
-                            try:
-                                os.unlink(temporary_file_name)
-                            except PermissionError:
-                                self.cur_temporary_file.close()
-                                os.unlink(temporary_file_name)
-                    self.temporary_file_names = self.temporary_file_names[
-                                                :self.temporary_file_index + 1:]
-                    self.waveforms = self.waveforms[:self.temporary_file_index + 1:]
-                    self.stream_rates = self.stream_rates[:self.temporary_file_index + 1:]
-
-                # Creating a new temporary file
-                self.cur_temporary_file = NamedTemporaryFile(suffix='.wav', delete=False)
-                sf.write(self.cur_temporary_file.name, self.cur_waveform, self.cur_stream_rate,
-                         'PCM_24')
-                self.temporary_file_names.append(self.cur_temporary_file.name)
-                self.waveforms.append(self.cur_waveform)
-                self.stream_rates.append(self.cur_stream_rate)
-                self.cur_temporary_file.close()
-
-                # Updating the player
-                self.player = QMediaPlayer()
-                url = QUrl.fromLocalFile(self.cur_temporary_file.name)
-                content = QMediaContent(url)
-                self.player.setMedia(content)
-
-                self.temporary_file_index += 1
-
-                if not self.undo_btn.isEnabled():
-                    self.undo_btn.setEnabled(True)
-
-                if self.redo_btn.isEnabled() \
-                        and self.temporary_file_index == len(self.temporary_file_names) - 1:
-                    self.redo_btn.setEnabled(False)
+                self.update_player_and_temporary_files()
 
 
 class ChooseImageSizeDialog(QDialog):
