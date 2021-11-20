@@ -897,6 +897,8 @@ class AudioEditingWindow(QMainWindow):
         uic.loadUi(os.path.abspath('designs/audio_editor_window.ui'), self)
 
         self.player = QMediaPlayer()
+        self.automatically_changed_player_position = False
+        self.player.positionChanged.connect(self.player_position_changed)
 
         self.open_btn.clicked.connect(self.open)
         self.save_btn.clicked.connect(self.save)
@@ -911,6 +913,7 @@ class AudioEditingWindow(QMainWindow):
         self.rewind_slider.valueChanged.connect(self.rewind)
         self.volume_slider.valueChanged.connect(self.change_volume)
         self.pace_slider.valueChanged.connect(self.change_pace)
+        self.automatically_changed_pace_slider_position = False
         self.crop_btn.clicked.connect(self.crop)
 
         self.temporary_file_names = list()
@@ -921,7 +924,6 @@ class AudioEditingWindow(QMainWindow):
         self.cur_temporary_file = None
         self.cur_waveform = None
         self.cur_stream_rate = None
-        self.original_stream_rate = None
 
     def open(self) -> None:
         global filename
@@ -944,8 +946,7 @@ class AudioEditingWindow(QMainWindow):
 
             try:
                 self.cur_waveform, \
-                    self.original_stream_rate = librosa.load(filename)
-                self.cur_stream_rate = self.original_stream_rate
+                    self.cur_stream_rate = librosa.load(filename)
 
                 # Creating a temporary file
                 self.delete_temporary_files()
@@ -1017,6 +1018,7 @@ class AudioEditingWindow(QMainWindow):
                                       "Are you sure you want to exit the audio editor?",
                                       QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if answer == QMessageBox.Yes:
+            self.player.stop()
             filename = ''
             self.delete_temporary_files()
             self.temporary_file_names = list()
@@ -1058,7 +1060,15 @@ class AudioEditingWindow(QMainWindow):
         self.rewind_slider.setValue(0)
 
     def rewind(self, rewind_slider_position: int) -> None:
-        self.player.setPosition(int(self.player.duration() * (rewind_slider_position / 100)))
+        if not self.automatically_changed_player_position:
+            self.player.setPosition(int(self.player.duration() * (rewind_slider_position / 1000)))
+
+    def player_position_changed(self):
+        if self.player.position() != 0:
+            self.automatically_changed_player_position = True
+            self.rewind_slider.setValue(round(1000 *
+                                              (self.player.position() / self.player.duration())))
+            self.automatically_changed_player_position = False
 
     def change_volume(self, volume_slider_position: int) -> None:
         self.player.setVolume(volume_slider_position)
@@ -1068,7 +1078,6 @@ class AudioEditingWindow(QMainWindow):
 
         # Updating the player
         self.cur_temporary_file.close()
-        self.player = QMediaPlayer()
         url = QUrl.fromLocalFile(self.temporary_file_names[self.temporary_file_index])
         content = QMediaContent(url)
         self.player.setMedia(content)
@@ -1078,6 +1087,11 @@ class AudioEditingWindow(QMainWindow):
         self.cur_temporary_file.close()
         self.cur_waveform = self.waveforms[self.temporary_file_index]
         self.cur_stream_rate = self.stream_rates[self.temporary_file_index]
+
+        self.automatically_changed_pace_slider_position = True
+        self.pace_slider.setValue(int(
+            self.stream_rates[self.temporary_file_index] / self.stream_rates[0] * 50))
+        self.automatically_changed_pace_slider_position = False
 
         if self.temporary_file_index <= 0:
             self.undo_btn.setEnabled(False)
@@ -1089,7 +1103,6 @@ class AudioEditingWindow(QMainWindow):
 
         # Updating the player
         self.cur_temporary_file.close()
-        self.player = QMediaPlayer()
         url = QUrl.fromLocalFile(self.temporary_file_names[self.temporary_file_index])
         content = QMediaContent(url)
         self.player.setMedia(content)
@@ -1100,12 +1113,17 @@ class AudioEditingWindow(QMainWindow):
         self.cur_waveform = self.waveforms[self.temporary_file_index]
         self.cur_stream_rate = self.stream_rates[self.temporary_file_index]
 
+        self.automatically_changed_pace_slider_position = True
+        self.pace_slider.setValue(int(
+            self.stream_rates[self.temporary_file_index] / self.stream_rates[0] * 50))
+        self.automatically_changed_pace_slider_position = False
+
         if self.temporary_file_index >= len(self.temporary_file_names) - 1:
             self.redo_btn.setEnabled(False)
         if self.temporary_file_index > 0:
             self.undo_btn.setEnabled(True)
 
-    def update_player_and_temporary_files(self):
+    def update_player_and_temporary_files(self) -> None:
         # Deleting all the temporary files after current index
         if self.temporary_file_index < len(self.temporary_file_names) - 1:
             if self.cur_temporary_file is not None:
@@ -1129,7 +1147,6 @@ class AudioEditingWindow(QMainWindow):
         self.cur_temporary_file.close()
 
         # Updating the player
-        self.player = QMediaPlayer()
         url = QUrl.fromLocalFile(self.cur_temporary_file.name)
         content = QMediaContent(url)
         self.player.setMedia(content)
@@ -1144,12 +1161,13 @@ class AudioEditingWindow(QMainWindow):
             self.redo_btn.setEnabled(False)
 
     def change_pace(self, pace_slider_position: int) -> None:
-        # Updating the stream rate
-        self.cur_stream_rate = int(self.original_stream_rate * (pace_slider_position / 50))
+        if not self.automatically_changed_pace_slider_position:
+            # Updating the stream rate
+            self.cur_stream_rate = int(self.stream_rates[0] * (pace_slider_position / 50))
 
-        self.update_player_and_temporary_files()
+            self.update_player_and_temporary_files()
 
-    def crop(self):
+    def crop(self) -> None:
         # Creating a dialog to ask the user about the positions of the start and the end of the song
         dialog = CropAudioDialog()
         dialog.exec_()
