@@ -47,10 +47,7 @@ class MainWindow(QMainWindow):
         answer = QMessageBox.question(self, "Confirm exit", "Are you sure you want to exit?",
                                       QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if answer == QMessageBox.Yes:
-            if image_editing_window.cur_temporary_file is not None:
-                # If the user has edited an image, deleting the created image temporary file
-                image_editing_window.cur_temporary_file.close()
-                os.unlink(image_editing_window.cur_temporary_file.name)
+            image_editing_window.delete_temporary_files()
             audio_editing_window.delete_temporary_files()
             event.accept()
         else:
@@ -467,7 +464,7 @@ class ImageEditingWindow(QMainWindow):
         # Create a temporary file in the main.py's directory
         self.cur_temporary_file = NamedTemporaryFile(suffix='.jpg', delete=False)
         self.image.pixmap().save(self.cur_temporary_file.name)
-        self.temporary_file_names = [self.cur_temporary_file]
+        self.temporary_file_names = [self.cur_temporary_file.name]
         self.temporary_file_index = 0
 
         filename = ''
@@ -546,14 +543,9 @@ class ImageEditingWindow(QMainWindow):
         if answer == QMessageBox.Yes:
             filename = ''
 
-            # Deleting the created temporary file if the image isn't saved
-            if self.cur_temporary_file is not None:
-                self.cur_temporary_file.close()
-                os.unlink(self.cur_temporary_file.name)
-                self.delete_temporary_files()
-                self.temporary_file_names = list()
+            self.delete_temporary_files()
 
-        windows.setCurrentIndex(0)
+            windows.setCurrentIndex(0)
 
     def delete_temporary_files(self):
         if self.cur_temporary_file is not None:
@@ -622,6 +614,22 @@ class ImageEditingWindow(QMainWindow):
         if self.redo_btn.isEnabled() \
                 and self.temporary_file_index == len(self.temporary_file_names) - 1:
             self.redo_btn.setEnabled(False)
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        if int(event.modifiers()) == Qt.ControlModifier and event.key() == Qt.Key_S:
+            # "Ctrl" + "S" shortcut to save the file
+            self.save()
+        elif int(event.modifiers()) == (Qt.ControlModifier + Qt.ShiftModifier) \
+                and event.key() == Qt.Key_S:
+            # "Ctrl" + "Shift" + "S" shortcut to save the file
+            self.save_as()
+        elif int(event.modifiers()) == Qt.ControlModifier and event.key() == Qt.Key_Z:
+            # "Ctrl" + "Z" shortcut to undo the changes
+            self.undo()
+        elif int(event.modifiers()) == (Qt.ControlModifier + Qt.ShiftModifier) \
+                and event.key() == Qt.Key_Z:
+            # "Ctrl" + "Shift" + "Z" shortcut to redo the changes
+            self.redo()
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
         if (self.select_btn.isChecked() or self.crop_btn.isChecked()) \
@@ -1015,6 +1023,22 @@ class AudioEditingWindow(QMainWindow):
             self.waveforms = list()
             self.stream_rates = list()
             windows.setCurrentIndex(0)
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        if int(event.modifiers()) == Qt.ControlModifier and event.key() == Qt.Key_S:
+            # "Ctrl" + "S" shortcut to save the file
+            self.save()
+        elif int(event.modifiers()) == (Qt.ControlModifier + Qt.ShiftModifier) \
+                and event.key() == Qt.Key_S:
+            # "Ctrl" + "Shift" + "S" shortcut to save the file
+            self.save_as()
+        elif int(event.modifiers()) == Qt.ControlModifier and event.key() == Qt.Key_Z:
+            # "Ctrl" + "Z" shortcut to undo the changes
+            self.undo()
+        elif int(event.modifiers()) == (Qt.ControlModifier + Qt.ShiftModifier) \
+                and event.key() == Qt.Key_Z:
+            # "Ctrl" + "Shift" + "Z" shortcut to redo the changes
+            self.redo()
 
     def delete_temporary_files(self) -> None:
         if self.cur_temporary_file is not None:
