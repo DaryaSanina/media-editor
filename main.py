@@ -1169,7 +1169,7 @@ class AudioEditingWindow(QMainWindow):
 
     def crop(self) -> None:
         # Creating a dialog to ask the user about the positions of the start and the end of the song
-        dialog = CropAudioDialog()
+        dialog = CropAudioDialog(duration=self.player.duration())
         dialog.exec_()
 
         if dialog.result() == 1:
@@ -1210,9 +1210,45 @@ class ChooseImageSizeDialog(QDialog):
 
 
 class CropAudioDialog(QDialog):
-    def __init__(self):
+    def __init__(self, duration):
         super(CropAudioDialog, self).__init__()
         uic.loadUi(os.path.abspath('designs/crop_audio_dialog.ui'), self)
+
+        self.duration = duration
+
+        self.start_slider.valueChanged.connect(self.change_time_label)
+        self.end_slider.valueChanged.connect(self.change_time_label)
+        self.end_slider.setValue(1000)
+
+    def change_time_label(self):
+        total = self.duration * (self.sender().value() / 1000)
+
+        hours = str(int(total / 1000 / 60 / 60))
+
+        minutes = int(total / 1000 / 60 % 60)
+        if minutes < 10:
+            minutes = '0' + str(minutes)
+        else:
+            minutes = str(minutes)
+
+        seconds = int(total / 1000 % 60)
+        if seconds < 10:
+            seconds = '0' + str(seconds)
+        else:
+            seconds = str(seconds)
+
+        milliseconds = int(total % 1000)
+        if milliseconds < 10:
+            milliseconds = '00' + str(milliseconds)
+        elif milliseconds < 100:
+            milliseconds = '0' + str(milliseconds)
+        else:
+            milliseconds = str(milliseconds)
+
+        if self.sender() == self.start_slider:
+            self.current_start_label.setText(f'{hours}:{minutes}:{seconds}.{milliseconds}')
+        elif self.sender() == self.end_slider:
+            self.current_end_label.setText(f'{hours}:{minutes}:{seconds}.{milliseconds}')
 
 
 if __name__ == '__main__':
