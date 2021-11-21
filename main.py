@@ -10,6 +10,8 @@ import librosa
 import soundfile as sf
 from numpy import array as np_array
 
+import sqlite3
+
 from PyQt5 import uic
 from PyQt5.QtGui import QPixmap, QFont, QKeyEvent, QIcon, QPainter, QPaintEvent, QMouseEvent, QPen
 from PyQt5.QtGui import QColor, QCloseEvent
@@ -17,6 +19,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QInputDialog, QFi
 from PyQt5.QtWidgets import QStackedWidget, QDialog, QRubberBand, QColorDialog, QErrorMessage
 from PyQt5.QtCore import Qt, QRect, QSize, QPoint, QUrl
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
+from PyQt5.QtSql import QSqlDatabase, QSqlTableModel
 
 HTML_EXTENSIONS = ['.htm', '.html']
 TEXT_EXTENSIONS = ['.txt']
@@ -33,6 +36,7 @@ class MainWindow(QMainWindow):
 
         self.create_new_btn.clicked.connect(self.choose_what_to_create)
         self.open_btn.clicked.connect(self.open)
+        self.history_btn.clicked.connect(open_project_history)
 
         # Displaying the logo in the main window
         self.title_image_pixmap = QPixmap('designs/title_image.jpg')
@@ -89,6 +93,9 @@ class MainWindow(QMainWindow):
             with open(filename, 'r', encoding='utf-8') as source_file:
                 text_editing_window.text_edit.setText(source_file.read())
 
+            project_history_window.update_database()
+            project_history_window.update_table()
+
             self.loading_label.hide()
 
             windows.setCurrentIndex(1)
@@ -109,6 +116,9 @@ class MainWindow(QMainWindow):
             image_editing_window.image.pixmap().save(temporary_file_name,
                                                      temporary_file_extension)
             image_editing_window.temporary_file_names.append(temporary_file_name)
+
+            project_history_window.update_database()
+            project_history_window.update_table()
 
             self.loading_label.hide()
 
@@ -143,6 +153,9 @@ class MainWindow(QMainWindow):
                 audio_editing_window.stream_rates = [audio_editing_window.cur_stream_rate]
                 audio_editing_window.temporary_file_index = 0
 
+                project_history_window.update_database()
+                project_history_window.update_table()
+
                 windows.setCurrentIndex(3)
             except:
                 error_message = QErrorMessage(self)
@@ -169,6 +182,9 @@ class MainWindow(QMainWindow):
                         with open(filename, 'r', encoding='utf-8') as source_file:
                             text_editing_window.text_edit.setText(source_file.read())
 
+                        project_history_window.update_database()
+                        project_history_window.update_table()
+
                         windows.setCurrentIndex(1)
 
                     elif file_type == "Image":
@@ -186,6 +202,9 @@ class MainWindow(QMainWindow):
                         image_editing_window.image.pixmap().save(temporary_file_name,
                                                                  temporary_file_extension)
                         image_editing_window.temporary_file_names.append(temporary_file_name)
+
+                        project_history_window.update_database()
+                        project_history_window.update_table()
 
                         windows.setCurrentIndex(2)
 
@@ -216,6 +235,9 @@ class MainWindow(QMainWindow):
                             audio_editing_window.stream_rates = [
                                 audio_editing_window.cur_stream_rate]
                             audio_editing_window.temporary_file_index = 0
+
+                            project_history_window.update_database()
+                            project_history_window.update_table()
 
                             windows.setCurrentIndex(3)
 
@@ -270,6 +292,9 @@ class TextEditingWindow(QMainWindow):
             with open(filename, 'r', encoding='utf-8') as source_file:
                 self.text_edit.setText(source_file.read())
 
+            project_history_window.update_database()
+            project_history_window.update_table()
+
     def save(self) -> None:
         if not filename:
             # If the file is new:
@@ -294,6 +319,9 @@ class TextEditingWindow(QMainWindow):
             # If the user didn't click "Cancel":
             with open(filename, 'w', encoding='utf-8') as dest_file:
                 dest_file.write(self.text_edit.toPlainText())
+
+            project_history_window.update_database()
+            project_history_window.update_table()
 
     def return_home(self) -> None:
         global filename
@@ -497,6 +525,9 @@ class ImageEditingWindow(QMainWindow):
                                                  .scaled(620, 470, Qt.KeepAspectRatio))
             image_editing_window.is_saved = True
 
+            project_history_window.update_database()
+            project_history_window.update_table()
+
     def save(self) -> None:
         if not filename:
             # If the file is new:
@@ -533,6 +564,9 @@ class ImageEditingWindow(QMainWindow):
                 self.cur_temporary_file.close()
                 os.unlink(self.cur_temporary_file.name)
                 self.cur_temporary_file = None
+
+            project_history_window.update_database()
+            project_history_window.update_table()
 
     def return_home(self) -> None:
         global filename
@@ -962,6 +996,9 @@ class AudioEditingWindow(QMainWindow):
 
                 self.undo_btn.setEnabled(False)
                 self.redo_btn.setEnabled(False)
+
+                project_history_window.update_database()
+                project_history_window.update_table()
             except:
                 error_message = QErrorMessage(self)
                 error_message.showMessage("Current format is not supported by ffmpeg\n"
@@ -1010,6 +1047,9 @@ class AudioEditingWindow(QMainWindow):
                 It'll be saved in '.wav' format.""")
                 filename = filename[:filename.rfind('.'):] + ".wav"
                 sf.write(filename, self.cur_waveform, self.cur_stream_rate, 'PCM_24')
+
+            project_history_window.update_database()
+            project_history_window.update_table()
 
     def return_home(self) -> None:
         global filename
@@ -1065,6 +1105,7 @@ class AudioEditingWindow(QMainWindow):
 
     def player_position_changed(self):
         if self.player.position() != 0:
+            # Updating rewind_slider
             self.automatically_changed_player_position = True
             self.rewind_slider.setValue(round(1000 *
                                               (self.player.position() / self.player.duration())))
@@ -1190,6 +1231,42 @@ class AudioEditingWindow(QMainWindow):
                 self.update_player_and_temporary_files()
 
 
+class ProjectHistoryWindow(QMainWindow):
+    def __init__(self):
+        super(ProjectHistoryWindow, self).__init__()
+        uic.loadUi(os.path.abspath('designs/project_history_window.ui'), self)
+
+        # Adding a database with filenames of all opened files
+        self.connection = sqlite3.connect('projects.db')
+        self.cursor = self.connection.cursor()
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS projects (
+                                   id integer PRIMARY KEY,
+                                   filename text);''')
+        self.update_table()
+
+        self.home_btn.clicked.connect(return_home_from_project_history_window)
+
+    def update_database(self):
+        # Updating the database
+        self.cursor.execute('''INSERT INTO projects(filename) VALUES (?)''', (filename,))
+        self.connection.commit()
+
+    def update_table(self):
+        # Creating a PyQt5 connection to the database
+        pyqt5_database = QSqlDatabase('QSQLITE')
+        pyqt5_database.setDatabaseName('projects.db')
+        pyqt5_database.open()
+
+        # Creating a PyQt5 SQL table model
+        model = QSqlTableModel(self, pyqt5_database)
+        model.setTable('projects')
+        model.select()
+
+        # Updating projects_table
+        self.projects_table.setModel(model)
+        self.projects_table.resize(780, 460)
+
+
 class ChooseImageSizeDialog(QDialog):
     def __init__(self):
         super(ChooseImageSizeDialog, self).__init__()
@@ -1246,9 +1323,17 @@ class CropAudioDialog(QDialog):
             milliseconds = str(milliseconds)
 
         if self.sender() == self.start_slider:
-            self.current_start_label.setText(f'{hours}:{minutes}:{seconds}.{milliseconds}')
+            self.current_start_label.setText(f"{hours}:{minutes}:{seconds}.{milliseconds}")
         elif self.sender() == self.end_slider:
-            self.current_end_label.setText(f'{hours}:{minutes}:{seconds}.{milliseconds}')
+            self.current_end_label.setText(f"{hours}:{minutes}:{seconds}.{milliseconds}")
+
+
+def open_project_history():
+    windows.setCurrentIndex(4)
+
+
+def return_home_from_project_history_window():
+    windows.setCurrentIndex(0)
 
 
 if __name__ == '__main__':
@@ -1269,6 +1354,9 @@ if __name__ == '__main__':
 
     audio_editing_window = AudioEditingWindow()
     windows.addWidget(audio_editing_window)
+
+    project_history_window = ProjectHistoryWindow()
+    windows.addWidget(project_history_window)
 
     windows.setFixedHeight(600)
     windows.setFixedWidth(800)
