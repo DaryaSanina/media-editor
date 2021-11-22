@@ -6,9 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>802</width>
-    <height>607</height>
+    <width>798</width>
+    <height>593</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
   </property>
   <property name="windowTitle">
    <string>Image Editor</string>
@@ -20,11 +26,16 @@
    <widget class="QPushButton" name="new_btn">
     <property name="geometry">
      <rect>
-      <x>10</x>
+      <x>170</x>
       <y>10</y>
-      <width>150</width>
-      <height>60</height>
+      <width>120</width>
+      <height>70</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
     </property>
     <property name="styleSheet">
      <string notr="true">color: white;</string>
@@ -36,11 +47,16 @@
    <widget class="QPushButton" name="open_btn">
     <property name="geometry">
      <rect>
-      <x>170</x>
+      <x>300</x>
       <y>10</y>
-      <width>150</width>
-      <height>60</height>
+      <width>120</width>
+      <height>70</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
     </property>
     <property name="styleSheet">
      <string notr="true">color: white;</string>
@@ -52,11 +68,16 @@
    <widget class="QPushButton" name="save_btn">
     <property name="geometry">
      <rect>
-      <x>330</x>
+      <x>430</x>
       <y>10</y>
-      <width>150</width>
-      <height>60</height>
+      <width>120</width>
+      <height>70</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
     </property>
     <property name="styleSheet">
      <string notr="true">color: white;</string>
@@ -68,11 +89,16 @@
    <widget class="QPushButton" name="save_as_btn">
     <property name="geometry">
      <rect>
-      <x>490</x>
+      <x>560</x>
       <y>10</y>
-      <width>150</width>
-      <height>60</height>
+      <width>120</width>
+      <height>70</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
     </property>
     <property name="styleSheet">
      <string notr="true">color: white;</string>
@@ -85,10 +111,15 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>80</y>
+      <y>90</y>
       <width>70</width>
       <height>70</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
     </property>
     <property name="styleSheet">
      <string notr="true">color: white</string>
@@ -107,10 +138,15 @@
     <property name="geometry">
      <rect>
       <x>90</x>
-      <y>80</y>
+      <y>90</y>
       <width>70</width>
       <height>70</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
     </property>
     <property name="styleSheet">
      <string notr="true">color: white</string>
@@ -132,10 +168,15 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>230</y>
+      <y>240</y>
       <width>70</width>
       <height>70</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
     </property>
     <property name="styleSheet">
      <string notr="true">color: white</string>
@@ -154,7 +195,7 @@
     <property name="geometry">
      <rect>
       <x>90</x>
-      <y>230</y>
+      <y>240</y>
       <width>70</width>
       <height>70</height>
      </rect>
@@ -170,10 +211,15 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>400</y>
+      <y>410</y>
       <width>70</width>
       <height>70</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
     </property>
     <property name="styleSheet">
      <string notr="true">color: white</string>
@@ -192,10 +238,15 @@
     <property name="geometry">
      <rect>
       <x>90</x>
-      <y>400</y>
+      <y>410</y>
       <width>70</width>
       <height>70</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
     </property>
     <property name="styleSheet">
      <string notr="true">color: white</string>
@@ -214,10 +265,16 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>480</y>
+      <y>490</y>
       <width>70</width>
       <height>70</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+      <pointsize>8</pointsize>
+     </font>
     </property>
     <property name="styleSheet">
      <string notr="true">color: white</string>
@@ -236,10 +293,15 @@
     <property name="geometry">
      <rect>
       <x>90</x>
-      <y>480</y>
+      <y>490</y>
       <width>70</width>
       <height>70</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
     </property>
     <property name="styleSheet">
      <string notr="true">color: white</string>
@@ -258,10 +320,15 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>160</y>
+      <y>170</y>
       <width>150</width>
       <height>60</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
     </property>
     <property name="styleSheet">
      <string notr="true">color: white</string>
@@ -339,14 +406,15 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>310</y>
+      <y>320</y>
       <width>70</width>
       <height>20</height>
      </rect>
     </property>
     <property name="font">
      <font>
-      <pointsize>13</pointsize>
+      <family>Consolas</family>
+      <pointsize>9</pointsize>
      </font>
     </property>
     <property name="styleSheet">
@@ -360,14 +428,15 @@
     <property name="geometry">
      <rect>
       <x>90</x>
-      <y>310</y>
+      <y>320</y>
       <width>70</width>
       <height>20</height>
      </rect>
     </property>
     <property name="font">
      <font>
-      <pointsize>13</pointsize>
+      <family>Consolas</family>
+      <pointsize>9</pointsize>
      </font>
     </property>
     <property name="styleSheet">
@@ -381,14 +450,15 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>340</y>
+      <y>350</y>
       <width>70</width>
       <height>50</height>
      </rect>
     </property>
     <property name="font">
      <font>
-      <pointsize>10</pointsize>
+      <family>Consolas</family>
+      <pointsize>8</pointsize>
      </font>
     </property>
     <property name="styleSheet">
@@ -408,14 +478,15 @@
     <property name="geometry">
      <rect>
       <x>90</x>
-      <y>340</y>
+      <y>350</y>
       <width>70</width>
       <height>50</height>
      </rect>
     </property>
     <property name="font">
      <font>
-      <pointsize>10</pointsize>
+      <family>Consolas</family>
+      <pointsize>8</pointsize>
      </font>
     </property>
     <property name="styleSheet">
@@ -434,13 +505,91 @@
      <double>100.000000000000000</double>
     </property>
    </widget>
+   <widget class="QPushButton" name="home_btn">
+    <property name="geometry">
+     <rect>
+      <x>720</x>
+      <y>10</y>
+      <width>70</width>
+      <height>70</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: white</string>
+    </property>
+    <property name="text">
+     <string>Home</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="undo_btn">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>10</y>
+      <width>70</width>
+      <height>70</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: white</string>
+    </property>
+    <property name="text">
+     <string>Undo</string>
+    </property>
+    <property name="checkable">
+     <bool>false</bool>
+    </property>
+    <property name="autoExclusive">
+     <bool>false</bool>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="redo_btn">
+    <property name="enabled">
+     <bool>false</bool>
+    </property>
+    <property name="geometry">
+     <rect>
+      <x>90</x>
+      <y>10</y>
+      <width>70</width>
+      <height>70</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: white</string>
+    </property>
+    <property name="text">
+     <string>Redo</string>
+    </property>
+    <property name="checkable">
+     <bool>false</bool>
+    </property>
+    <property name="autoExclusive">
+     <bool>false</bool>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>802</width>
+     <width>798</width>
      <height>18</height>
     </rect>
    </property>

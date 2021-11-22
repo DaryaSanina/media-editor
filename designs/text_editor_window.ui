@@ -38,6 +38,12 @@
       <height>400</height>
      </rect>
     </property>
+    <property name="sizePolicy">
+     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+      <horstretch>0</horstretch>
+      <verstretch>0</verstretch>
+     </sizepolicy>
+    </property>
     <property name="palette">
      <palette>
       <active>
@@ -223,6 +229,11 @@
       <height>60</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
+    </property>
     <property name="styleSheet">
      <string notr="true">color: white;</string>
     </property>
@@ -238,6 +249,11 @@
       <width>150</width>
       <height>60</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
     </property>
     <property name="styleSheet">
      <string notr="true">color: white;</string>
@@ -255,6 +271,11 @@
       <height>60</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
+    </property>
     <property name="styleSheet">
      <string notr="true">color: white;</string>
     </property>
@@ -270,6 +291,11 @@
       <width>150</width>
       <height>60</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
     </property>
     <property name="styleSheet">
      <string notr="true">color: white;</string>
@@ -287,6 +313,12 @@
       <height>60</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+      <pointsize>8</pointsize>
+     </font>
+    </property>
     <property name="styleSheet">
      <string notr="true">color: white;</string>
     </property>
@@ -294,7 +326,7 @@
      <number>1</number>
     </property>
     <property name="value">
-     <number>11</number>
+     <number>8</number>
     </property>
    </widget>
    <widget class="QPushButton" name="bold_btn">
@@ -411,8 +443,34 @@
       <height>60</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
+    </property>
     <property name="styleSheet">
      <string notr="true">color: white;</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="home_btn">
+    <property name="geometry">
+     <rect>
+      <x>720</x>
+      <y>10</y>
+      <width>60</width>
+      <height>60</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: white</string>
+    </property>
+    <property name="text">
+     <string>Home</string>
     </property>
    </widget>
   </widget>

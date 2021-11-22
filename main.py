@@ -1,4 +1,6 @@
+import os
 import sys
+from tempfile import NamedTemporaryFile
 
 from PIL import Image
 from PIL.ImageQt import ImageQt
@@ -6,15 +8,18 @@ import pilgram
 
 import librosa
 import soundfile as sf
-import numpy as np
+from numpy import array as np_array
+
+import sqlite3
 
 from PyQt5 import uic
 from PyQt5.QtGui import QPixmap, QFont, QKeyEvent, QIcon, QPainter, QPaintEvent, QMouseEvent, QPen
-from PyQt5.QtGui import QColor
+from PyQt5.QtGui import QColor, QCloseEvent
 from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QInputDialog, QFileDialog, QMessageBox
 from PyQt5.QtWidgets import QStackedWidget, QDialog, QRubberBand, QColorDialog, QErrorMessage
 from PyQt5.QtCore import Qt, QRect, QSize, QPoint, QUrl
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
+from PyQt5.QtSql import QSqlDatabase, QSqlTableModel
 
 HTML_EXTENSIONS = ['.htm', '.html']
 TEXT_EXTENSIONS = ['.txt']
@@ -27,17 +32,30 @@ filename = ''
 class MainWindow(QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
-        uic.loadUi('designs/main_window.ui', self)
+        uic.loadUi(os.path.abspath('designs/main_window.ui'), self)
 
         self.create_new_btn.clicked.connect(self.choose_what_to_create)
         self.open_btn.clicked.connect(self.open)
+        self.history_btn.clicked.connect(open_project_history)
 
         # Displaying the logo in the main window
-        self.title_image_pixmap = QPixmap('designs/title_image.jpg')
+        self.title_image_pixmap = QPixmap(os.path.abspath('designs/title_image.jpg'))
         self.title_image = QLabel(self)
         self.title_image.move(160, 50)
         self.title_image.resize(480, 125)
         self.title_image.setPixmap(self.title_image_pixmap)
+
+        self.loading_label.hide()
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        answer = QMessageBox.question(self, "Confirm exit", "Are you sure you want to exit?",
+                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if answer == QMessageBox.Yes:
+            image_editing_window.delete_temporary_files()
+            audio_editing_window.delete_temporary_files()
+            event.accept()
+        else:
+            event.ignore()
 
     def choose_what_to_create(self) -> None:
         # Creating an input dialog to ask the user what editor to open
@@ -47,53 +65,47 @@ class MainWindow(QMainWindow):
         if ok_pressed:
             # Opening the editor that the user wants to open
             if file_type == "Image":
+                image_editing_window.image.setPixmap(QPixmap())
                 windows.setCurrentIndex(2)
                 image_editing_window.new()
             elif file_type == "Text":
+                text_editing_window.text_edit.setText("")
                 windows.setCurrentIndex(1)
 
     def open(self) -> None:
         # Getting the filename and the file extension
         global filename
-        filename = QFileDialog.getOpenFileName(self, 'Choose file', '')[0]
+        filename = QFileDialog.getOpenFileName(self, "Choose file", '',
+                                               'Text Document (*.txt);;HTML Document (*.html);;'
+                                               'HTML Document (*.htm);;Image (*.png);;'
+                                               'Image (*.jpg);;Image (*.bmp);;Image (*.gif);;'
+                                               'Image (*.jpeg);;Image (*.pbm);;Image (*.tiff);;'
+                                               'Image (*.svg);;Image (*.xbm);;Audio File (*.mp3);;'
+                                               'Audio File (*.wav);;All Files (*)')[0]
         extension = filename[filename.rfind('.')::]
+
+        self.loading_label.show()
 
         # Guessing what editor the user wants to open
         if extension in TEXT_EXTENSIONS or extension in HTML_EXTENSIONS \
-                and QMessageBox.question(self, 'File type guess',
+                and QMessageBox.question(self, "File type guess",
                                          "Do you want to edit a text document?",
                                          QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
-            windows.setCurrentIndex(1)
-
-            # Reading the text from the file
-            with open(filename, 'r', encoding='utf-8') as source_file:
-                text_editing_window.text_edit.setText(source_file.read())
+            load_text_file()
+            self.loading_label.hide()
 
         elif extension in IMAGE_EXTENSIONS \
                 and QMessageBox.question(self, 'File type guess', "Do you want to edit an image?",
                                          QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
-            windows.setCurrentIndex(2)
+            load_image_file()
+            self.loading_label.hide()
 
-            # Displaying the image from the opened file
-            image_editing_window.image.setPixmap(QPixmap(filename)
-                                                 .scaled(620, 470, Qt.KeepAspectRatio))
-            image_editing_window.is_saved = True
         elif extension in AUDIO_EXTENSIONS \
                 and QMessageBox.question(self, 'File type guess',
                                          "Do you want to edit an audio file?",
                                          QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
-            # Loading the audio
-            url = QUrl.fromLocalFile(filename)
-            content = QMediaContent(url)
-            audio_editing_window.player.setMedia(content)
-
-            try:
-                audio_editing_window.waveform, \
-                    audio_editing_window.sample_rate = librosa.load(filename)
-                windows.setCurrentIndex(3)
-            except:
-                error_message = QErrorMessage(self)
-                error_message.showMessage("Please install ffmpeg")
+            load_audio_file()
+            self.loading_label.hide()
 
         elif extension != '':
             # If the guess isn't correct,
@@ -104,56 +116,56 @@ class MainWindow(QMainWindow):
                                                          0, False)
 
             # Opening the editor that the user wants to open
+            self.loading_label.hide()
+
             if ok_pressed:
-                if file_type == "Text":
-                    windows.setCurrentIndex(1)
+                self.loading_label.show()
+                try:
+                    if file_type == "Text":
+                        load_text_file()
 
-                    # Reading the text from the file
-                    with open(filename, 'r', encoding='utf-8') as source_file:
-                        text_editing_window.text_edit.setText(source_file.read())
+                    elif file_type == "Image":
+                        load_image_file()
 
-                elif file_type == "Image":
-                    windows.setCurrentIndex(2)
+                    elif file_type == "Audio":
+                        load_audio_file()
+                except:
+                    error_message = QErrorMessage(self)
+                    error_message.showMessage("Can't read the file")
 
-                    # Displaying the image from the opened file
-                    image_editing_window.image.setPixmap(QPixmap(filename)
-                                                         .scaled(620, 470, Qt.KeepAspectRatio))
-                    image_editing_window.is_saved = True
-
-                elif file_type == "Audio":
-                    # Loading the audio
-                    url = QUrl.fromLocalFile(filename)
-                    content = QMediaContent(url)
-                    audio_editing_window.player.setMedia(content)
-
-                    try:
-                        audio_editing_window.waveform, \
-                            audio_editing_window.sample_rate = librosa.load(filename)
-                        windows.setCurrentIndex(3)
-
-                    except:
-                        error_message = QErrorMessage(self)
-                        error_message.showMessage("Please install ffmpeg")
+                self.loading_label.hide()
+        else:
+            self.loading_label.hide()
 
 
 class TextEditingWindow(QMainWindow):
     def __init__(self):
         super(TextEditingWindow, self).__init__()
-        uic.loadUi('designs/text_editor_window.ui', self)
+        uic.loadUi(os.path.abspath('designs/text_editor_window.ui'), self)
 
         self.new_btn.clicked.connect(self.new)
         self.open_btn.clicked.connect(self.open)
         self.save_btn.clicked.connect(self.save)
         self.save_as_btn.clicked.connect(self.save_as)
+        self.home_btn.clicked.connect(self.return_home)
+
+        self.text_edit.textChanged.connect(self.restore_formatting_for_cleared_text)
 
         self.font_combo_box.currentFontChanged.connect(self.change_font)
+        self.font = self.text_edit.currentFont()
 
         self.font_size_spin_box.valueChanged.connect(self.change_font_point_size)
+        self.font_point_size = self.text_edit.fontPointSize()
 
         self.bold_btn.clicked.connect(self.set_bold)
         self.italic_btn.clicked.connect(self.set_italic)
         self.underline_btn.clicked.connect(self.set_underlined)
         self.strikeout_btn.clicked.connect(self.set_strikeout)
+
+        self.is_bold = False
+        self.is_italic = False
+        self.is_underlined = False
+        self.is_stroke_out = False
 
     def new(self) -> None:
         global filename
@@ -164,16 +176,22 @@ class TextEditingWindow(QMainWindow):
     def open(self) -> None:
         global filename
 
-        filename = QFileDialog.getOpenFileName(self, 'Choose file', '')[0]
-        with open(filename, 'r', encoding='utf-8') as source_file:
-            self.text_edit.setText(source_file.read())
+        new_filename = QFileDialog.getOpenFileName(self, 'Choose file', '',
+                                                   'Text Document (*.txt);;HTML Document (*.html);;'
+                                                   'HTML Document (*.htm);;All Files (*)')[0]
+        if new_filename:
+            # If the user didn't click "Cancel":
+            filename = new_filename
+            with open(filename, 'r', encoding='utf-8') as source_file:
+                self.text_edit.setText(source_file.read())
+
+            project_history_window.update_database()
+            project_history_window.update_table()
 
     def save(self) -> None:
-        global filename
-
         if not filename:
-            # If the file is new, asking the user for the filename
-            filename = QFileDialog.getSaveFileName(self, 'Save file', '')[0]
+            # If the file is new:
+            self.save_as()
         with open(filename, 'w', encoding='utf-8') as dest_file:
             extension = filename[filename.rfind('.')::]
             # If the extension of the file the user wants to save the text to is an html extension,
@@ -186,9 +204,27 @@ class TextEditingWindow(QMainWindow):
     def save_as(self) -> None:
         global filename
 
-        filename = QFileDialog.getSaveFileName(self, 'Save file', '')[0]
-        with open(filename, 'w', encoding='utf-8') as dest_file:
-            dest_file.write(self.text_edit.toPlainText())
+        new_filename = QFileDialog.getSaveFileName(self, 'Save file', '',
+                                                   'Text Document (*.txt);;HTML Document (*.html);;'
+                                                   'HTML Document (*.htm);;All Files (*)')[0]
+        if new_filename:
+            filename = new_filename
+            # If the user didn't click "Cancel":
+            with open(filename, 'w', encoding='utf-8') as dest_file:
+                dest_file.write(self.text_edit.toPlainText())
+
+            project_history_window.update_database()
+            project_history_window.update_table()
+
+    def return_home(self) -> None:
+        global filename
+
+        answer = QMessageBox.question(self, "Confirm exit",
+                                      "Are you sure you want to exit the text editor?",
+                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if answer == QMessageBox.Yes:
+            filename = ''
+            windows.setCurrentIndex(0)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         if int(event.modifiers()) == Qt.ControlModifier and event.key() == Qt.Key_S:
@@ -199,77 +235,104 @@ class TextEditingWindow(QMainWindow):
             # "Ctrl" + "Shift" + "S" shortcut to save the file
             self.save_as()
 
+    def restore_formatting_for_cleared_text(self):
+        if self.text_edit.toPlainText() == "":
+            self.change_font(self.font)
+            self.change_font_point_size(self.font_point_size)
+            if self.is_bold:
+                self.set_bold()
+            if self.is_italic:
+                self.set_italic()
+            if self.is_underlined:
+                self.set_underlined()
+            if self.is_stroke_out:
+                self.set_strikeout()
+
     def change_font(self, font: QFont) -> None:
+        self.font = font
+
+        if self.strikeout_btn.isChecked():
+            font.setStrikeOut(True)
         self.text_edit.setCurrentFont(font)
+        if self.bold_btn.isChecked():
+            self.text_edit.setFontWeight(QFont.Bold)
+        if self.italic_btn.isChecked():
+            self.text_edit.setFontItalic(True)
+        if self.underline_btn.isChecked():
+            self.text_edit.setFontUnderline(True)
+
+        self.text_edit.setFontPointSize(self.font_size_spin_box.value())
 
     def change_font_point_size(self, font_point_size: int) -> None:
+        self.font_point_size = font_point_size
         self.text_edit.setFontPointSize(font_point_size)
 
     def set_bold(self) -> None:
-        # Making the text bold if the "bold_btn" is checked, else making it not bold
-        if self.sender().isChecked():
+        # Marking the text bold if the "bold_btn" is checked, else marking it not bold
+        if self.bold_btn.isChecked():
+            self.is_bold = True
             self.text_edit.setFontWeight(QFont.Bold)
         else:
+            self.is_bold = False
             self.text_edit.setFontWeight(QFont.NoFontMerging)
 
     def set_italic(self) -> None:
-        # Making the text italic if the "italic_btn" is checked, else making it not italic
-        if self.sender().isChecked():
+        # Marking the text italic if the "italic_btn" is checked, else marking it not italic
+        if self.italic_btn.isChecked():
+            self.is_italic = True
             self.text_edit.setFontItalic(True)
         else:
+            self.is_italic = False
             self.text_edit.setFontItalic(False)
 
     def set_underlined(self) -> None:
-        # Underlining the text if the "underline_btn" is checked, else making it not underlined
-        if self.sender().isChecked():
+        # Underlining the text if the "underline_btn" is checked, else marking it not underlined
+        if self.underline_btn.isChecked():
+            self.is_underlined = True
             self.text_edit.setFontUnderline(True)
         else:
+            self.is_underlined = False
             self.text_edit.setFontUnderline(False)
 
     def set_strikeout(self) -> None:
-        # Striking out the text if the "strikeout_btn" is checked, else making it not stroke out
+        # Striking out the text if the "strikeout_btn" is checked, else marking it not stroke out
         font = self.text_edit.currentFont()
-        if self.sender().isChecked():
+        if self.strikeout_btn.isChecked():
+            self.is_stroke_out = True
             font.setStrikeOut(True)
             self.text_edit.setCurrentFont(font)
         else:
+            self.is_stroke_out = False
             font.setStrikeOut(False)
             self.text_edit.setCurrentFont(font)
 
-
-class ChooseImageSizeDialog(QDialog):
-    def __init__(self):
-        super(ChooseImageSizeDialog, self).__init__()
-        uic.loadUi('designs/choose_size_dialog.ui', self)
-
-        self.unit_combo_box.currentTextChanged.connect(self.set_default_width_and_height)
-
-    def set_default_width_and_height(self):
-        if self.sender().currentText() == "in":
-            self.width_spin_box.setValue(7)
-            self.height_spin_box.setValue(5)
-        elif self.sender().currentText() == "px":
-            self.width_spin_box.setValue(2100)
-            self.height_spin_box.setValue(1500)
-        elif self.sender().currentText() == "cm":
-            self.width_spin_box.setValue(18)
-            self.height_spin_box.setValue(13)
+        if self.bold_btn.isChecked():
+            self.text_edit.setFontWeight(QFont.Bold)
+        if self.italic_btn.isChecked():
+            self.text_edit.setFontItalic(True)
+        if self.underline_btn.isChecked():
+            self.text_edit.setFontUnderline(True)
+        self.text_edit.setFontPointSize(self.font_size_spin_box.value())
 
 
 class ImageEditingWindow(QMainWindow):
     def __init__(self):
         super(ImageEditingWindow, self).__init__()
-        uic.loadUi('designs/image_editor_window.ui', self)
+        uic.loadUi(os.path.abspath('designs/image_editor_window.ui'), self)
 
         # Creating a label that will display the opened image or a new white image
         self.image = QLabel(self)
         self.image.move(170, 80)
+        self.image.setAlignment(Qt.AlignLeft)
 
         # Assigning the width and the height of the image to 0
         self.image_width = 0
         self.image_height = 0
 
         self.is_saved = False
+        self.cur_temporary_file = None
+        self.temporary_file_names = list()
+        self.temporary_file_index = 0
 
         self.pixmap_without_filters = None
 
@@ -280,6 +343,10 @@ class ImageEditingWindow(QMainWindow):
         self.open_btn.clicked.connect(self.open)
         self.save_btn.clicked.connect(self.save)
         self.save_as_btn.clicked.connect(self.save_as)
+        self.home_btn.clicked.connect(self.return_home)
+        self.undo_btn.clicked.connect(self.undo)
+        self.redo_btn.clicked.connect(self.redo)
+
         self.filter_combo_box.currentTextChanged.connect(self.change_filter)
         self.brush_size_spin_box.valueChanged.connect(self.change_brush_size)
         self.brush_opacity_spin_box.valueChanged.connect(self.change_brush_opacity)
@@ -295,6 +362,8 @@ class ImageEditingWindow(QMainWindow):
         self.brush_color = QColor(0, 0, 0, 255)  # (0, 0, 0, 255) is black color
 
     def new(self) -> None:
+        global filename
+
         # Creating a dialog
         # to ask the user about the width and the height of the picture to create
         dialog = ChooseImageSizeDialog()
@@ -330,7 +399,7 @@ class ImageEditingWindow(QMainWindow):
                 self.image_width = dialog.width_spin_box.value()
                 self.image_height = dialog.height_spin_box.value()
 
-        pixmap = QPixmap(self.image_width, self.image_height)
+        pixmap = QPixmap(self.image_width, self.image_height).scaled(620, 470, Qt.KeepAspectRatio)
         pixmap.fill(Qt.white)
         self.image.setPixmap(pixmap)
 
@@ -339,18 +408,45 @@ class ImageEditingWindow(QMainWindow):
 
         self.is_saved = False
 
+        # Create a temporary file in the main.py's directory
+        self.cur_temporary_file = NamedTemporaryFile(suffix='.jpg', delete=False)
+        self.image.pixmap().save(self.cur_temporary_file.name)
+        self.temporary_file_names = [self.cur_temporary_file.name]
+        self.temporary_file_index = 0
+
+        filename = ''
+
     def open(self) -> None:
         global filename
 
         # Getting the filename
-        new_filename = QFileDialog.getOpenFileName(self, 'Choose file', '')[0]
+        new_filename = QFileDialog.getOpenFileName(self, 'Choose file', '',
+                                                   'Image (*.png);;Image (*.jpg);;Image (*.bmp);;'
+                                                   'Image (*.gif);;Image (*.jpeg);;Image (*.pbm);;'
+                                                   'Image (*.tiff);;Image (*.svg);;Image (*.xbm);;'
+                                                   'All Files (*)')[0]
 
         if new_filename:
-            # If the user didn't click "Cancel", displaying the image from the opened file
+            # If the user didn't click "Cancel":
+            # Creating a temporary file with the opened image for the unsaved changes
+            image_editing_window.cur_temporary_file = NamedTemporaryFile(suffix='.jpg',
+                                                                         delete=False)
+            temporary_file_name = image_editing_window.cur_temporary_file.name
+            temporary_file_extension = temporary_file_name[
+                                       temporary_file_name.rfind('.')::][1::].upper()
+            image_editing_window.image.pixmap().save(temporary_file_name,
+                                                     temporary_file_extension)
+            self.temporary_file_names = [self.cur_temporary_file.name]
+            self.temporary_file_index = 0
+
+            # Displaying the image from the opened file
             filename = new_filename
             image_editing_window.image.setPixmap(QPixmap(filename)
                                                  .scaled(620, 470, Qt.KeepAspectRatio))
             image_editing_window.is_saved = True
+
+            project_history_window.update_database()
+            project_history_window.update_table()
 
     def save(self) -> None:
         if not filename:
@@ -362,10 +458,20 @@ class ImageEditingWindow(QMainWindow):
             self.image.pixmap().save(filename, extension)
             self.is_saved = True
 
+            # Deleting the created temporary file
+            if self.cur_temporary_file is not None:
+                self.cur_temporary_file.close()
+                os.unlink(self.cur_temporary_file.name)
+                self.cur_temporary_file = None
+
     def save_as(self) -> None:
         global filename
 
-        new_filename = QFileDialog.getSaveFileName(self, 'Save the file', '')[0]
+        new_filename = QFileDialog.getSaveFileName(self, 'Save the file', '',
+                                                   'Image (*.png);;Image (*.jpg);;Image (*.bmp);;'
+                                                   'Image (*.gif);;Image (*.jpeg);;Image (*.pbm);;'
+                                                   'Image (*.tiff);;Image (*.svg);;Image (*.xbm);;'
+                                                   'All Files (*)')[0]
 
         if new_filename:
             # If the user didn't click "Cancel":
@@ -374,13 +480,122 @@ class ImageEditingWindow(QMainWindow):
             self.image.pixmap().save(filename, extension)
             self.is_saved = True
 
+            # Deleting the created temporary file
+            if self.cur_temporary_file is not None:
+                self.cur_temporary_file.close()
+                os.unlink(self.cur_temporary_file.name)
+                self.cur_temporary_file = None
+
+            project_history_window.update_database()
+            project_history_window.update_table()
+
+    def return_home(self) -> None:
+        global filename
+
+        answer = QMessageBox.question(self, "Confirm exit",
+                                      "Are you sure you want to exit the image editor?",
+                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if answer == QMessageBox.Yes:
+            filename = ''
+
+            self.delete_temporary_files()
+
+            windows.setCurrentIndex(0)
+
+    def delete_temporary_files(self):
+        if self.cur_temporary_file is not None:
+            self.cur_temporary_file.close()
+            for temporary_file_name in self.temporary_file_names:
+                try:
+                    os.unlink(temporary_file_name)
+                except FileNotFoundError:
+                    pass
+            self.cur_temporary_file = None
+
+    def undo(self) -> None:
+        self.temporary_file_index -= 1
+
+        # Updating the pixmap
+        self.cur_temporary_file.close()
+        temporary_file_name = self.temporary_file_names[self.temporary_file_index]
+        self.image.setPixmap(QPixmap(temporary_file_name).scaled(620, 470, Qt.KeepAspectRatio))
+
+        # Updating cur_temporary_file
+        self.cur_temporary_file = open(self.temporary_file_names[self.temporary_file_index])
+        self.cur_temporary_file.close()
+
+        if self.temporary_file_index <= 0:
+            self.undo_btn.setEnabled(False)
+        if self.temporary_file_index < len(self.temporary_file_names):
+            self.redo_btn.setEnabled(True)
+
+    def redo(self) -> None:
+        self.temporary_file_index += 1
+
+        # Updating the pixmap
+        self.cur_temporary_file.close()
+        temporary_file_name = self.temporary_file_names[self.temporary_file_index]
+        self.image.setPixmap(QPixmap(temporary_file_name).scaled(620, 470, Qt.KeepAspectRatio))
+
+        # Updating cur_temporary_file
+        self.cur_temporary_file = open(self.temporary_file_names[self.temporary_file_index])
+        self.cur_temporary_file.close()
+
+        if self.temporary_file_index >= len(self.temporary_file_names) - 1:
+            self.redo_btn.setEnabled(False)
+        if self.temporary_file_index > 0:
+            self.undo_btn.setEnabled(True)
+
+    def update_temporary_files(self):
+        # Deleting all the temporary files after current index
+        if self.temporary_file_index < len(self.temporary_file_names) - 1:
+            if self.cur_temporary_file is not None:
+                for temporary_file_name in \
+                        self.temporary_file_names[self.temporary_file_index + 1::]:
+                    try:
+                        os.unlink(temporary_file_name)
+                    except PermissionError:
+                        self.cur_temporary_file.close()
+                        os.unlink(temporary_file_name)
+            self.temporary_file_names = self.temporary_file_names[:self.temporary_file_index + 1:]
+
+        # Creating a new temporary file
+        self.cur_temporary_file = NamedTemporaryFile(suffix='.jpg', delete=False)
+        self.image.pixmap().save(self.cur_temporary_file.name, 'JPG')
+        self.temporary_file_names.append(self.cur_temporary_file.name)
+        self.temporary_file_index += 1
+        self.cur_temporary_file.close()
+
+        if not self.undo_btn.isEnabled():
+            self.undo_btn.setEnabled(True)
+
+        if self.redo_btn.isEnabled() \
+                and self.temporary_file_index == len(self.temporary_file_names) - 1:
+            self.redo_btn.setEnabled(False)
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        if int(event.modifiers()) == Qt.ControlModifier and event.key() == Qt.Key_S:
+            # "Ctrl" + "S" shortcut to save the file
+            self.save()
+        elif int(event.modifiers()) == (Qt.ControlModifier + Qt.ShiftModifier) \
+                and event.key() == Qt.Key_S:
+            # "Ctrl" + "Shift" + "S" shortcut to save the file
+            self.save_as()
+        elif int(event.modifiers()) == Qt.ControlModifier and event.key() == Qt.Key_Z:
+            # "Ctrl" + "Z" shortcut to undo the changes
+            self.undo()
+        elif int(event.modifiers()) == (Qt.ControlModifier + Qt.ShiftModifier) \
+                and event.key() == Qt.Key_Z:
+            # "Ctrl" + "Shift" + "Z" shortcut to redo the changes
+            self.redo()
+
     def mousePressEvent(self, event: QMouseEvent) -> None:
         if (self.select_btn.isChecked() or self.crop_btn.isChecked()) \
                 and event.button() == Qt.LeftButton:
             # If only button "Crop" or "Select" is checked,
             # start creating the rubber band
-            if 170 <= event.pos().x() <= 170 + self.image_height \
-                    and 80 <= event.pos().y() <= 80 + self.image_height:
+            if 170 <= event.pos().x() <= 170 + self.image.pixmap().width() \
+                    and 80 <= event.pos().y() <= 80 + self.image.pixmap().height():
                 # If the user has clicked inside the image:
                 if self.rubber_band is None:
                     # If the selection is for the first time, creating a new rubber band:
@@ -411,7 +626,7 @@ class ImageEditingWindow(QMainWindow):
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
         if not self.is_drawing and not self.is_erasing and not self.is_drawing_line \
                 and not self.is_drawing_rectangle and not self.is_drawing_ellipse \
-                and self.rubber_band_origin is not None:
+                and self.rubber_band is not None:
             # If the left button of the mouse was pressed inside the image,
             # selecting the part of the image that the user wants to select
 
@@ -420,16 +635,16 @@ class ImageEditingWindow(QMainWindow):
             # to the nearest to the cursor possible spot
             if selection_horizontal_end_point < 170:
                 selection_horizontal_end_point = 170
-            elif selection_horizontal_end_point > 170 + self.image_width:
-                selection_horizontal_end_point = 170 + self.image_width
+            elif selection_horizontal_end_point > 170 + self.image.pixmap().width():
+                selection_horizontal_end_point = 170 + self.image.pixmap().width()
 
             selection_vertical_end_point = event.pos().y()
             # If the cursor is outside the image, setting selection_vertical_end_point
             # to the nearest to the cursor possible spot
             if selection_vertical_end_point < 80:
                 selection_vertical_end_point = 80
-            elif selection_vertical_end_point > 80 + self.image_height:
-                selection_vertical_end_point = 80 + self.image_height
+            elif selection_vertical_end_point > 80 + self.image.pixmap().height():
+                selection_vertical_end_point = 80 + self.image.pixmap().height()
 
             # Updating the rubber band
             self.rubber_band.setGeometry(QRect(self.rubber_band_origin,
@@ -446,8 +661,10 @@ class ImageEditingWindow(QMainWindow):
             painter.setPen(QPen(color, self.brush_size, Qt.SolidLine, Qt.RoundCap,
                                 Qt.RoundJoin))
             painter.drawLine(self.last_pen_point,
-                             QPoint(event.pos().x() - 170, event.pos().y() - 80))
-            self.last_pen_point = QPoint(event.pos().x() - 170, event.pos().y() - 80)
+                             QPoint(event.pos().x() - 170,
+                                    event.pos().y() - 80))
+            self.last_pen_point = QPoint(event.pos().x() - 170,
+                                         event.pos().y() - 80)
             self.update()
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
@@ -473,16 +690,19 @@ class ImageEditingWindow(QMainWindow):
             self.image_height = self.image.pixmap().height()
 
             self.is_saved = False
+            self.update_temporary_files()
 
             self.rubber_band.hide()
 
         elif self.is_drawing:
             self.is_drawing = False
             self.is_saved = False
+            self.update_temporary_files()
 
         elif self.is_erasing:
             self.is_erasing = False
             self.is_saved = False
+            self.update_temporary_files()
 
         elif self.is_drawing_line:
             # Creating a QPainter object with the opened image
@@ -494,6 +714,7 @@ class ImageEditingWindow(QMainWindow):
             self.update()
             self.is_drawing_line = False
             self.is_saved = False
+            self.update_temporary_files()
 
         elif self.is_drawing_rectangle:
             # Creating a QPainter object with the opened image
@@ -506,6 +727,7 @@ class ImageEditingWindow(QMainWindow):
             self.update()
             self.is_drawing_rectangle = False
             self.is_saved = False
+            self.update_temporary_files()
 
         elif self.is_drawing_ellipse:
             # Creating a QPainter object with the opened image
@@ -518,6 +740,7 @@ class ImageEditingWindow(QMainWindow):
             self.update()
             self.is_drawing_ellipse = False
             self.is_saved = False
+            self.update_temporary_files()
 
     def paintEvent(self, event: QPaintEvent) -> None:
         self.image.resize(620, 470)
@@ -544,11 +767,7 @@ class ImageEditingWindow(QMainWindow):
             if self.is_saved:
                 pil_image = Image.open(filename)
             else:
-                # Converting the opened QPixmap image to PIL Image format
-                image_qt_image = self.image.pixmap().toImage()
-                data = image_qt_image.constBits().asstring(image_qt_image.byteCount())
-                pil_image = Image.frombuffer('RGBA', (self.image_width, self.image_height), data,
-                                             'raw', 'RGBA', 0, 1)
+                pil_image = Image.open(self.cur_temporary_file.name)
 
             # Applying the chosen filter
             if image_filter == "Clarendon":
@@ -569,13 +788,8 @@ class ImageEditingWindow(QMainWindow):
 
                 for i in range(self.image_width):
                     for j in range(self.image_height):
-                        if self.is_saved:
-                            # The mode is 'RGB', getting the pixel's red, green and blue component
-                            r, g, b = pixels[i, j]
-                        else:
-                            # The mode is 'RGBA', getting the pixel's red, green, blue
-                            # and alpha component
-                            r, g, b, a = pixels[i, j]
+                        # The mode is 'RGB', getting the pixel's red, green and blue component
+                        r, g, b = pixels[i, j]
                         if image_filter == "Only red":
                             # Leaving only red pixel's component
                             g, b = 0, 0
@@ -607,10 +821,7 @@ class ImageEditingWindow(QMainWindow):
                             b = middle_color
 
                         # Updating the pixel
-                        if self.is_saved:
-                            pil_image.putpixel((i, j), (r, g, b))
-                        else:
-                            pil_image.putpixel((i, j), (r, g, b, a))
+                        pil_image.putpixel((i, j), (r, g, b))
 
             # Converting the updated PIL Image image to QPixmap format
             # and applying it to the image label
@@ -620,6 +831,8 @@ class ImageEditingWindow(QMainWindow):
             self.image_width = pixmap.width()
             self.image_height = pixmap.height()
             self.image.setPixmap(pixmap)
+
+            self.update_temporary_files()
 
     def change_brush_size(self, size: float) -> None:
         self.brush_size = size
@@ -636,72 +849,169 @@ class ImageEditingWindow(QMainWindow):
             self.sender().setStyleSheet(f"background-color: {color.name()}")
 
 
-class CropAudioDialog(QDialog):
-    def __init__(self):
-        super(CropAudioDialog, self).__init__()
-        uic.loadUi('designs/crop_audio_dialog.ui', self)
-
-
 class AudioEditingWindow(QMainWindow):
     def __init__(self):
         super(AudioEditingWindow, self).__init__()
-        uic.loadUi('designs/audio_editor_window.ui', self)
+        uic.loadUi(os.path.abspath('designs/audio_editor_window.ui'), self)
+
         self.player = QMediaPlayer()
+        self.automatically_changed_player_position = False
+        self.player.positionChanged.connect(self.player_position_changed)
 
         self.open_btn.clicked.connect(self.open)
         self.save_btn.clicked.connect(self.save)
         self.save_as_btn.clicked.connect(self.save_as)
+        self.home_btn.clicked.connect(self.return_home)
+        self.undo_btn.clicked.connect(self.undo)
+        self.redo_btn.clicked.connect(self.redo)
+        self.loading_label.hide()
 
         self.play_pause_btn.clicked.connect(self.play)
         self.stop_btn.clicked.connect(self.stop)
         self.rewind_slider.valueChanged.connect(self.rewind)
         self.volume_slider.valueChanged.connect(self.change_volume)
         self.pace_slider.valueChanged.connect(self.change_pace)
+        self.automatically_changed_pace_slider_position = False
         self.crop_btn.clicked.connect(self.crop)
 
-        self.waveform = None
-        self.sample_rate = None
+        self.temporary_file_names = list()
+        self.waveforms = list()
+        self.stream_rates = list()
+        self.temporary_file_index = 0
 
-    def open(self):
+        self.cur_temporary_file = None
+        self.cur_waveform = None
+        self.cur_stream_rate = None
+
+    def open(self) -> None:
         global filename
 
+        self.loading_label.show()
+
         # Getting the filename
-        new_filename = QFileDialog.getOpenFileName(self, 'Choose file', '')[0]
+        new_filename = QFileDialog.getOpenFileName(self, 'Choose file', '',
+                                                   'Audio File (*.mp3);;Audio File (*.wav)'
+                                                   ';;All Files (*)')[0]
 
         if new_filename:
             # If the user didn't click "Cancel":
             filename = new_filename
 
-            # Loading the audio
+            # Uploading the audio to the player
             url = QUrl.fromLocalFile(filename)
             content = QMediaContent(url)
             self.player.setMedia(content)
 
             try:
-                self.waveform, \
-                    self.sample_rate = librosa.load(filename)
+                self.cur_waveform, \
+                    self.cur_stream_rate = librosa.load(filename)
+
+                # Creating a temporary file
+                self.delete_temporary_files()
+
+                self.cur_temporary_file = NamedTemporaryFile(suffix='.wav', delete=False)
+                sf.write(self.cur_temporary_file.name, self.cur_waveform, self.cur_stream_rate,
+                         'PCM_24')
+
+                self.temporary_file_names = [self.cur_temporary_file.name]
+                self.waveforms = [self.cur_waveform]
+                self.stream_rates = [self.cur_stream_rate]
+                self.temporary_file_index = 0
+
+                self.undo_btn.setEnabled(False)
+                self.redo_btn.setEnabled(False)
+
+                project_history_window.update_database()
+                project_history_window.update_table()
             except:
                 error_message = QErrorMessage(self)
-                error_message.showMessage("Please install ffmpeg")
+                error_message.showMessage("Current format is not supported by ffmpeg\n"
+                                          "or you haven't installed ffmpeg.")
 
-    def save(self):
-        if not filename:
-            # If the file is new:
+        self.loading_label.hide()
+
+    def save(self) -> None:
+        global filename
+
+        if not filename:  # if the file is new:
             self.save_as()
 
         else:
-            sf.write(filename, self.waveform, self.sample_rate, 'PCM_24')
+            extension = filename[filename.rfind('.')::][1::].upper()
+            if extension in sf.available_formats() \
+                    and filename[filename.rfind('.')::] in AUDIO_EXTENSIONS:
+                # If current format is available to save with soundfile:
+                sf.write(filename, self.cur_waveform, self.cur_stream_rate, 'PCM_24',
+                         format=extension)
+            else:
+                error_message = QErrorMessage(self)
+                error_message.showMessage("""Couldn't save the file in the chosen format.
+                            It'll be saved in '.wav' format.""")
+                filename = filename[:filename.rfind('.'):] + ".wav"
+                sf.write(filename, self.cur_waveform, self.cur_stream_rate, 'PCM_24')
 
-    def save_as(self):
+    def save_as(self) -> None:
         global filename
 
         # Getting the filename
-        new_filename = QFileDialog.getSaveFileName(self, 'Choose file', '')[0]
+        new_filename = QFileDialog.getSaveFileName(self, 'Choose file', '',
+                                                   'Audio File (*.wav);;All Files (*)')[0]
 
-        if new_filename:
-            # If the user didn't click "Cancel":
+        if new_filename:  # if the user didn't click "Cancel":
             filename = new_filename
-            sf.write(filename, self.waveform, self.sample_rate, 'PCM_24')
+            extension = filename[filename.rfind('.')::][1::].upper()
+            if extension in sf.available_formats() \
+                    and filename[filename.rfind('.')::] in AUDIO_EXTENSIONS:
+                # If current format is available to save with soundfile:
+                sf.write(filename, self.cur_waveform, self.cur_stream_rate, 'PCM_24',
+                         format=extension)
+            else:
+                error_message = QErrorMessage(self)
+                error_message.showMessage("""Couldn't save the file in the chosen format.
+                It'll be saved in '.wav' format.""")
+                filename = filename[:filename.rfind('.'):] + ".wav"
+                sf.write(filename, self.cur_waveform, self.cur_stream_rate, 'PCM_24')
+
+            project_history_window.update_database()
+            project_history_window.update_table()
+
+    def return_home(self) -> None:
+        global filename
+
+        answer = QMessageBox.question(self, "Confirm exit",
+                                      "Are you sure you want to exit the audio editor?",
+                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if answer == QMessageBox.Yes:
+            self.player.stop()
+            filename = ''
+            self.delete_temporary_files()
+            self.temporary_file_names = list()
+            self.waveforms = list()
+            self.stream_rates = list()
+            windows.setCurrentIndex(0)
+
+    def keyPressEvent(self, event: QKeyEvent) -> None:
+        if int(event.modifiers()) == Qt.ControlModifier and event.key() == Qt.Key_S:
+            # "Ctrl" + "S" shortcut to save the file
+            self.save()
+        elif int(event.modifiers()) == (Qt.ControlModifier + Qt.ShiftModifier) \
+                and event.key() == Qt.Key_S:
+            # "Ctrl" + "Shift" + "S" shortcut to save the file
+            self.save_as()
+        elif int(event.modifiers()) == Qt.ControlModifier and event.key() == Qt.Key_Z:
+            # "Ctrl" + "Z" shortcut to undo the changes
+            self.undo()
+        elif int(event.modifiers()) == (Qt.ControlModifier + Qt.ShiftModifier) \
+                and event.key() == Qt.Key_Z:
+            # "Ctrl" + "Shift" + "Z" shortcut to redo the changes
+            self.redo()
+
+    def delete_temporary_files(self) -> None:
+        if self.cur_temporary_file is not None:
+            self.cur_temporary_file.close()
+            for temporary_file_name in self.temporary_file_names:
+                os.unlink(temporary_file_name)
+            self.cur_temporary_file = None
 
     def play(self) -> None:
         if self.player.state() == QMediaPlayer.PlayingState:
@@ -714,24 +1024,117 @@ class AudioEditingWindow(QMainWindow):
         self.rewind_slider.setValue(0)
 
     def rewind(self, rewind_slider_position: int) -> None:
-        self.player.setPosition(int(self.player.duration() * (rewind_slider_position / 100)))
+        if not self.automatically_changed_player_position:
+            self.player.setPosition(int(self.player.duration() * (rewind_slider_position / 1000)))
+
+    def player_position_changed(self):
+        if self.player.position() != 0:
+            # Updating rewind_slider
+            self.automatically_changed_player_position = True
+            self.rewind_slider.setValue(round(1000 *
+                                              (self.player.position() / self.player.duration())))
+            self.automatically_changed_player_position = False
 
     def change_volume(self, volume_slider_position: int) -> None:
         self.player.setVolume(volume_slider_position)
 
-    def change_pace(self, pace_slider_position: int) -> None:
-        # Updating the stream rate
-        if self.player.playbackRate() != 0:
-            self.sample_rate /= self.player.playbackRate()
-        self.sample_rate *= (pace_slider_position / 50)
-        self.sample_rate = int(self.sample_rate)
+    def undo(self) -> None:
+        self.temporary_file_index -= 1
 
         # Updating the player
-        self.player.setPlaybackRate(pace_slider_position / 50)
+        self.cur_temporary_file.close()
+        url = QUrl.fromLocalFile(self.temporary_file_names[self.temporary_file_index])
+        content = QMediaContent(url)
+        self.player.setMedia(content)
 
-    def crop(self):
+        # Updating cur_temporary_file, cur_waveform and cur_stream_rate
+        self.cur_temporary_file = open(self.temporary_file_names[self.temporary_file_index])
+        self.cur_temporary_file.close()
+        self.cur_waveform = self.waveforms[self.temporary_file_index]
+        self.cur_stream_rate = self.stream_rates[self.temporary_file_index]
+
+        self.automatically_changed_pace_slider_position = True
+        self.pace_slider.setValue(int(
+            self.stream_rates[self.temporary_file_index] / self.stream_rates[0] * 50))
+        self.automatically_changed_pace_slider_position = False
+
+        if self.temporary_file_index <= 0:
+            self.undo_btn.setEnabled(False)
+        if self.temporary_file_index < len(self.temporary_file_names):
+            self.redo_btn.setEnabled(True)
+
+    def redo(self) -> None:
+        self.temporary_file_index += 1
+
+        # Updating the player
+        self.cur_temporary_file.close()
+        url = QUrl.fromLocalFile(self.temporary_file_names[self.temporary_file_index])
+        content = QMediaContent(url)
+        self.player.setMedia(content)
+
+        # Updating cur_temporary_file, cur_waveform and cur_stream_rate
+        self.cur_temporary_file = open(self.temporary_file_names[self.temporary_file_index])
+        self.cur_temporary_file.close()
+        self.cur_waveform = self.waveforms[self.temporary_file_index]
+        self.cur_stream_rate = self.stream_rates[self.temporary_file_index]
+
+        self.automatically_changed_pace_slider_position = True
+        self.pace_slider.setValue(int(
+            self.stream_rates[self.temporary_file_index] / self.stream_rates[0] * 50))
+        self.automatically_changed_pace_slider_position = False
+
+        if self.temporary_file_index >= len(self.temporary_file_names) - 1:
+            self.redo_btn.setEnabled(False)
+        if self.temporary_file_index > 0:
+            self.undo_btn.setEnabled(True)
+
+    def update_player_and_temporary_files(self) -> None:
+        # Deleting all the temporary files after current index
+        if self.temporary_file_index < len(self.temporary_file_names) - 1:
+            if self.cur_temporary_file is not None:
+                for temporary_file_name in \
+                        self.temporary_file_names[self.temporary_file_index + 1::]:
+                    try:
+                        os.unlink(temporary_file_name)
+                    except PermissionError:
+                        self.cur_temporary_file.close()
+                        os.unlink(temporary_file_name)
+            self.temporary_file_names = self.temporary_file_names[:self.temporary_file_index + 1:]
+            self.waveforms = self.waveforms[:self.temporary_file_index + 1:]
+            self.stream_rates = self.stream_rates[:self.temporary_file_index + 1:]
+
+        # Creating a new temporary file
+        self.cur_temporary_file = NamedTemporaryFile(suffix='.wav', delete=False)
+        sf.write(self.cur_temporary_file.name, self.cur_waveform, self.cur_stream_rate, 'PCM_24')
+        self.temporary_file_names.append(self.cur_temporary_file.name)
+        self.waveforms.append(self.cur_waveform)
+        self.stream_rates.append(self.cur_stream_rate)
+        self.cur_temporary_file.close()
+
+        # Updating the player
+        url = QUrl.fromLocalFile(self.cur_temporary_file.name)
+        content = QMediaContent(url)
+        self.player.setMedia(content)
+
+        self.temporary_file_index += 1
+
+        if not self.undo_btn.isEnabled():
+            self.undo_btn.setEnabled(True)
+
+        if self.redo_btn.isEnabled() \
+                and self.temporary_file_index == len(self.temporary_file_names) - 1:
+            self.redo_btn.setEnabled(False)
+
+    def change_pace(self, pace_slider_position: int) -> None:
+        if not self.automatically_changed_pace_slider_position:
+            # Updating the stream rate
+            self.cur_stream_rate = int(self.stream_rates[0] * (pace_slider_position / 50))
+
+            self.update_player_and_temporary_files()
+
+    def crop(self) -> None:
         # Creating a dialog to ask the user about the positions of the start and the end of the song
-        dialog = CropAudioDialog()
+        dialog = CropAudioDialog(duration=self.player.duration())
         dialog.exec_()
 
         if dialog.result() == 1:
@@ -744,21 +1147,207 @@ class AudioEditingWindow(QMainWindow):
                 error_message.showMessage("The audio file ends earlier than starts")
             else:
                 # Updating the waveform
-                start_waveform_pos = int(len(self.waveform) * (start_slider_pos / 100))
-                end_waveform_pos = int(len(self.waveform) * (end_slider_pos / 100))
-                self.waveform = np.array(list(self.waveform)
-                                         [start_waveform_pos:end_waveform_pos + 1:])
-    # TODO
-    pass
+                start_waveform_pos = int(len(self.cur_waveform) * (start_slider_pos / 100))
+                end_waveform_pos = int(len(self.cur_waveform) * (end_slider_pos / 100))
+                self.cur_waveform = np_array(list(self.cur_waveform)
+                                             [start_waveform_pos:end_waveform_pos + 1:])
+
+                self.update_player_and_temporary_files()
+
+
+class ProjectHistoryWindow(QMainWindow):
+    def __init__(self):
+        super(ProjectHistoryWindow, self).__init__()
+        uic.loadUi(os.path.abspath('designs/project_history_window.ui'), self)
+
+        # Adding a database with filenames of all opened files
+        self.connection = sqlite3.connect('projects.db')
+        self.cursor = self.connection.cursor()
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS projects (
+                                   filename text);''')
+        self.update_table()
+
+        self.home_btn.clicked.connect(return_home_from_project_history_window)
+
+    def update_database(self):
+        # Updating the database
+        self.cursor.execute('''INSERT INTO projects(filename) VALUES (?)''', (filename,))
+        self.connection.commit()
+
+    def update_table(self):
+        # Creating a PyQt5 connection to the database
+        pyqt5_database = QSqlDatabase('QSQLITE')
+        pyqt5_database.setDatabaseName('projects.db')
+        pyqt5_database.open()
+
+        # Creating a PyQt5 SQL table model
+        model = QSqlTableModel(self, pyqt5_database)
+        model.setTable('projects')
+        model.select()
+
+        # Updating projects_table
+        self.projects_table.setModel(model)
+        self.projects_table.resize(780, 460)
+
+
+class ChooseImageSizeDialog(QDialog):
+    def __init__(self):
+        super(ChooseImageSizeDialog, self).__init__()
+        uic.loadUi(os.path.abspath('designs/choose_size_dialog.ui'), self)
+
+        self.unit_combo_box.currentTextChanged.connect(self.set_default_width_and_height)
+
+    def set_default_width_and_height(self):
+        if self.sender().currentText() == "in":
+            self.width_spin_box.setValue(7)
+            self.height_spin_box.setValue(5)
+        elif self.sender().currentText() == "px":
+            self.width_spin_box.setValue(2100)
+            self.height_spin_box.setValue(1500)
+        elif self.sender().currentText() == "cm":
+            self.width_spin_box.setValue(18)
+            self.height_spin_box.setValue(13)
+
+
+class CropAudioDialog(QDialog):
+    def __init__(self, duration):
+        super(CropAudioDialog, self).__init__()
+        uic.loadUi(os.path.abspath('designs/crop_audio_dialog.ui'), self)
+
+        self.duration = duration
+
+        self.start_slider.valueChanged.connect(self.change_time_label)
+        self.end_slider.valueChanged.connect(self.change_time_label)
+        self.end_slider.setValue(1000)
+
+    def change_time_label(self):
+        total = self.duration * (self.sender().value() / 1000)
+
+        hours = str(int(total / 1000 / 60 / 60))
+
+        minutes = int(total / 1000 / 60 % 60)
+        if minutes < 10:
+            minutes = '0' + str(minutes)
+        else:
+            minutes = str(minutes)
+
+        seconds = int(total / 1000 % 60)
+        if seconds < 10:
+            seconds = '0' + str(seconds)
+        else:
+            seconds = str(seconds)
+
+        milliseconds = int(total % 1000)
+        if milliseconds < 10:
+            milliseconds = '00' + str(milliseconds)
+        elif milliseconds < 100:
+            milliseconds = '0' + str(milliseconds)
+        else:
+            milliseconds = str(milliseconds)
+
+        if self.sender() == self.start_slider:
+            self.current_start_label.setText(f"{hours}:{minutes}:{seconds}.{milliseconds}")
+        elif self.sender() == self.end_slider:
+            self.current_end_label.setText(f"{hours}:{minutes}:{seconds}.{milliseconds}")
+
+
+def load_text_file():
+    # Reading the text from the file
+    with open(filename, 'r', encoding='utf-8') as source_file:
+        text_editing_window.text_edit.setText(source_file.read())
+
+    project_history_window.update_database()
+    project_history_window.update_table()
+
+    windows.setCurrentIndex(1)
+
+
+def load_image_file():
+    # Displaying the image from the opened file
+    image_editing_window.image.setPixmap(QPixmap(filename)
+                                         .scaled(620, 470, Qt.KeepAspectRatio))
+    image_editing_window.is_saved = True
+
+    # Creating a temporary file with the opened image for the unsaved changes
+    image_editing_window.cur_temporary_file = NamedTemporaryFile(suffix='.jpg', delete=False)
+    temporary_file_name = image_editing_window.cur_temporary_file.name
+    temporary_file_extension = temporary_file_name[
+                               temporary_file_name.rfind('.')::][1::].upper()
+    image_editing_window.image.pixmap().save(temporary_file_name,
+                                             temporary_file_extension)
+    image_editing_window.temporary_file_names.append(temporary_file_name)
+
+    project_history_window.update_database()
+    project_history_window.update_table()
+
+    windows.setCurrentIndex(2)
+
+
+def load_audio_file():
+    # Uploading the audio to the player
+    url = QUrl.fromLocalFile(filename)
+    content = QMediaContent(url)
+    audio_editing_window.player.setMedia(content)
+
+    try:
+        audio_editing_window.cur_waveform, \
+            audio_editing_window.original_stream_rate = librosa.load(filename)
+        audio_editing_window.cur_stream_rate \
+            = audio_editing_window.original_stream_rate
+
+        # Creating a temporary file with the audio for the unsaved changes
+        audio_editing_window.delete_temporary_files()
+
+        audio_editing_window.cur_temporary_file = NamedTemporaryFile(
+            suffix='.wav',
+            delete=False)
+        temporary_file_name = audio_editing_window.cur_temporary_file.name
+        sf.write(temporary_file_name, audio_editing_window.cur_waveform,
+                 audio_editing_window.cur_stream_rate, 'PCM_24')
+
+        audio_editing_window.temporary_file_names = [temporary_file_name]
+        audio_editing_window.waveforms = [audio_editing_window.cur_waveform]
+        audio_editing_window.stream_rates = [
+            audio_editing_window.cur_stream_rate]
+        audio_editing_window.temporary_file_index = 0
+
+        project_history_window.update_database()
+        project_history_window.update_table()
+
+        windows.setCurrentIndex(3)
+
+    except:
+        error_message = QErrorMessage(main_window)
+        error_message.showMessage("Current format is not supported by ffmpeg\n"
+                                  "or you haven't installed ffmpeg.")
+
+
+def open_project_history():
+    windows.setCurrentIndex(4)
+
+
+def return_home_from_project_history_window():
+    windows.setCurrentIndex(0)
 
 
 if __name__ == '__main__':
+    filename = ''
+
     app = QApplication(sys.argv)
 
     windows = QStackedWidget()
 
+    windows.setFixedHeight(600)
+    windows.setFixedWidth(800)
+    windows.setWindowTitle("Media Editor")
+    windows.setWindowIcon(QIcon('designs/icons/window_icon.jpg'))
+
+    windows.show()
+
     main_window = MainWindow()
     windows.addWidget(main_window)
+
+    windows.closeEvent = main_window.closeEvent
 
     text_editing_window = TextEditingWindow()
     windows.addWidget(text_editing_window)
@@ -769,11 +1358,8 @@ if __name__ == '__main__':
     audio_editing_window = AudioEditingWindow()
     windows.addWidget(audio_editing_window)
 
-    windows.setFixedHeight(600)
-    windows.setFixedWidth(800)
-    windows.setWindowTitle("Media Editor")
-    windows.setWindowIcon(QIcon('designs/icons/window_icon.jpg'))
+    project_history_window = ProjectHistoryWindow()
+    windows.addWidget(project_history_window)
 
-    windows.show()
     app.installEventFilter(image_editing_window)
     sys.exit(app.exec_())

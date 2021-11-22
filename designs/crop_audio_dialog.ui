@@ -6,9 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>300</height>
+    <width>398</width>
+    <height>293</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
   </property>
   <property name="windowTitle">
    <string>Crop audiofile</string>
@@ -25,6 +31,14 @@
      <height>32</height>
     </rect>
    </property>
+   <property name="font">
+    <font>
+     <family>Consolas</family>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color: white</string>
+   </property>
    <property name="orientation">
     <enum>Qt::Horizontal</enum>
    </property>
@@ -36,12 +50,15 @@
    <property name="geometry">
     <rect>
      <x>80</x>
-     <y>70</y>
+     <y>40</y>
      <width>300</width>
      <height>30</height>
     </rect>
    </property>
    <property name="maximum">
+    <number>1000</number>
+   </property>
+   <property name="pageStep">
     <number>100</number>
    </property>
    <property name="orientation">
@@ -58,10 +75,13 @@
     </rect>
    </property>
    <property name="maximum">
+    <number>1000</number>
+   </property>
+   <property name="pageStep">
     <number>100</number>
    </property>
    <property name="value">
-    <number>100</number>
+    <number>0</number>
    </property>
    <property name="orientation">
     <enum>Qt::Horizontal</enum>
@@ -71,10 +91,15 @@
    <property name="geometry">
     <rect>
      <x>20</x>
-     <y>70</y>
+     <y>40</y>
      <width>35</width>
      <height>30</height>
     </rect>
+   </property>
+   <property name="font">
+    <font>
+     <family>Consolas</family>
+    </font>
    </property>
    <property name="styleSheet">
     <string notr="true">color: white</string>
@@ -92,11 +117,60 @@
      <height>30</height>
     </rect>
    </property>
+   <property name="font">
+    <font>
+     <family>Consolas</family>
+    </font>
+   </property>
    <property name="styleSheet">
     <string notr="true">color: white</string>
    </property>
    <property name="text">
     <string>End:</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="current_start_label">
+   <property name="geometry">
+    <rect>
+     <x>80</x>
+     <y>80</y>
+     <width>60</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <family>Consolas</family>
+     <pointsize>7</pointsize>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color: white</string>
+   </property>
+   <property name="text">
+    <string>0:00:00.000</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="current_end_label">
+   <property name="geometry">
+    <rect>
+     <x>320</x>
+     <y>190</y>
+     <width>60</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <family>Consolas</family>
+     <pointsize>7</pointsize>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color: white</string>
+   </property>
+   <property name="text">
+    <string>0:00:00.000</string>
    </property>
   </widget>
  </widget>
