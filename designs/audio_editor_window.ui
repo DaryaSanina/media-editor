@@ -6,9 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>802</width>
-    <height>607</height>
+    <width>798</width>
+    <height>593</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
   </property>
   <property name="windowTitle">
    <string>Audio Editor</string>
@@ -45,6 +51,12 @@
       <height>70</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+      <pointsize>8</pointsize>
+     </font>
+    </property>
     <property name="styleSheet">
      <string notr="true">color: white</string>
     </property>
@@ -53,7 +65,7 @@
     </property>
     <property name="icon">
      <iconset theme="icons/audio_play_btn_icon.ico">
-      <normaloff>../../../.designer/backup</normaloff>../../../.designer/backup</iconset>
+      <normaloff>../../../../.designer/backup</normaloff>../../../../.designer/backup</iconset>
     </property>
    </widget>
    <widget class="QPushButton" name="stop_btn">
@@ -64,6 +76,11 @@
       <width>70</width>
       <height>70</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
     </property>
     <property name="styleSheet">
      <string notr="true">color: white</string>
@@ -80,6 +97,11 @@
       <width>150</width>
       <height>70</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
     </property>
     <property name="styleSheet">
      <string notr="true">color: white;</string>
@@ -144,6 +166,11 @@
       <height>70</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
+    </property>
     <property name="styleSheet">
      <string notr="true">color: white;</string>
     </property>
@@ -160,6 +187,11 @@
       <height>70</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
+    </property>
     <property name="styleSheet">
      <string notr="true">color: white;</string>
     </property>
@@ -170,14 +202,15 @@
    <widget class="QLabel" name="label">
     <property name="geometry">
      <rect>
-      <x>65</x>
+      <x>55</x>
       <y>380</y>
-      <width>50</width>
+      <width>70</width>
       <height>20</height>
      </rect>
     </property>
     <property name="font">
      <font>
+      <family>Consolas</family>
       <pointsize>11</pointsize>
      </font>
     </property>
@@ -194,14 +227,15 @@
    <widget class="QLabel" name="label_2">
     <property name="geometry">
      <rect>
-      <x>675</x>
+      <x>665</x>
       <y>380</y>
-      <width>50</width>
+      <width>70</width>
       <height>20</height>
      </rect>
     </property>
     <property name="font">
      <font>
+      <family>Consolas</family>
       <pointsize>11</pointsize>
      </font>
     </property>
@@ -224,6 +258,11 @@
       <height>70</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
+    </property>
     <property name="styleSheet">
      <string notr="true">color: white</string>
     </property>
@@ -234,11 +273,16 @@
    <widget class="QPushButton" name="home_btn">
     <property name="geometry">
      <rect>
-      <x>720</x>
+      <x>710</x>
       <y>10</y>
-      <width>60</width>
-      <height>60</height>
+      <width>70</width>
+      <height>70</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
     </property>
     <property name="styleSheet">
      <string notr="true">color: white</string>
@@ -258,6 +302,7 @@
     </property>
     <property name="font">
      <font>
+      <family>Consolas</family>
       <pointsize>11</pointsize>
      </font>
     </property>
@@ -282,6 +327,11 @@
       <width>70</width>
       <height>70</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
     </property>
     <property name="styleSheet">
      <string notr="true">color: white</string>
@@ -308,6 +358,11 @@
       <height>70</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
+    </property>
     <property name="styleSheet">
      <string notr="true">color: white</string>
     </property>
@@ -321,13 +376,57 @@
      <bool>false</bool>
     </property>
    </widget>
+   <widget class="QLabel" name="current_time_label">
+    <property name="geometry">
+     <rect>
+      <x>180</x>
+      <y>345</y>
+      <width>90</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+      <pointsize>7</pointsize>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: white</string>
+    </property>
+    <property name="text">
+     <string>0:00:00.000</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="current_time_label_2">
+    <property name="geometry">
+     <rect>
+      <x>560</x>
+      <y>345</y>
+      <width>90</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+      <pointsize>7</pointsize>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: white</string>
+    </property>
+    <property name="text">
+     <string>0:00:00.000</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>802</width>
+     <width>798</width>
      <height>18</height>
     </rect>
    </property>

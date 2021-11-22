@@ -6,9 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>300</height>
+    <width>398</width>
+    <height>293</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
   </property>
   <property name="windowTitle">
    <string>Crop audiofile</string>
@@ -24,6 +30,14 @@
      <width>341</width>
      <height>32</height>
     </rect>
+   </property>
+   <property name="font">
+    <font>
+     <family>Consolas</family>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color: white</string>
    </property>
    <property name="orientation">
     <enum>Qt::Horizontal</enum>
@@ -82,6 +96,11 @@
      <height>30</height>
     </rect>
    </property>
+   <property name="font">
+    <font>
+     <family>Consolas</family>
+    </font>
+   </property>
    <property name="styleSheet">
     <string notr="true">color: white</string>
    </property>
@@ -97,6 +116,11 @@
      <width>35</width>
      <height>30</height>
     </rect>
+   </property>
+   <property name="font">
+    <font>
+     <family>Consolas</family>
+    </font>
    </property>
    <property name="styleSheet">
     <string notr="true">color: white</string>
@@ -114,6 +138,12 @@
      <height>20</height>
     </rect>
    </property>
+   <property name="font">
+    <font>
+     <family>Consolas</family>
+     <pointsize>7</pointsize>
+    </font>
+   </property>
    <property name="styleSheet">
     <string notr="true">color: white</string>
    </property>
@@ -129,6 +159,12 @@
      <width>60</width>
      <height>20</height>
     </rect>
+   </property>
+   <property name="font">
+    <font>
+     <family>Consolas</family>
+     <pointsize>7</pointsize>
+    </font>
    </property>
    <property name="styleSheet">
     <string notr="true">color: white</string>

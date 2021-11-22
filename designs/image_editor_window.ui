@@ -6,9 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>806</width>
-    <height>621</height>
+    <width>798</width>
+    <height>593</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
   </property>
   <property name="windowTitle">
    <string>Image Editor</string>
@@ -26,6 +32,11 @@
       <height>70</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
+    </property>
     <property name="styleSheet">
      <string notr="true">color: white;</string>
     </property>
@@ -41,6 +52,11 @@
       <width>120</width>
       <height>70</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
     </property>
     <property name="styleSheet">
      <string notr="true">color: white;</string>
@@ -58,6 +74,11 @@
       <height>70</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
+    </property>
     <property name="styleSheet">
      <string notr="true">color: white;</string>
     </property>
@@ -74,6 +95,11 @@
       <height>70</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
+    </property>
     <property name="styleSheet">
      <string notr="true">color: white;</string>
     </property>
@@ -89,6 +115,11 @@
       <width>70</width>
       <height>70</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
     </property>
     <property name="styleSheet">
      <string notr="true">color: white</string>
@@ -111,6 +142,11 @@
       <width>70</width>
       <height>70</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
     </property>
     <property name="styleSheet">
      <string notr="true">color: white</string>
@@ -136,6 +172,11 @@
       <width>70</width>
       <height>70</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
     </property>
     <property name="styleSheet">
      <string notr="true">color: white</string>
@@ -175,6 +216,11 @@
       <height>70</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
+    </property>
     <property name="styleSheet">
      <string notr="true">color: white</string>
     </property>
@@ -196,6 +242,11 @@
       <width>70</width>
       <height>70</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
     </property>
     <property name="styleSheet">
      <string notr="true">color: white</string>
@@ -219,6 +270,12 @@
       <height>70</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+      <pointsize>8</pointsize>
+     </font>
+    </property>
     <property name="styleSheet">
      <string notr="true">color: white</string>
     </property>
@@ -241,6 +298,11 @@
       <height>70</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
+    </property>
     <property name="styleSheet">
      <string notr="true">color: white</string>
     </property>
@@ -262,6 +324,11 @@
       <width>150</width>
       <height>60</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
     </property>
     <property name="styleSheet">
      <string notr="true">color: white</string>
@@ -346,7 +413,8 @@
     </property>
     <property name="font">
      <font>
-      <pointsize>13</pointsize>
+      <family>Consolas</family>
+      <pointsize>9</pointsize>
      </font>
     </property>
     <property name="styleSheet">
@@ -367,7 +435,8 @@
     </property>
     <property name="font">
      <font>
-      <pointsize>13</pointsize>
+      <family>Consolas</family>
+      <pointsize>9</pointsize>
      </font>
     </property>
     <property name="styleSheet">
@@ -388,7 +457,8 @@
     </property>
     <property name="font">
      <font>
-      <pointsize>10</pointsize>
+      <family>Consolas</family>
+      <pointsize>8</pointsize>
      </font>
     </property>
     <property name="styleSheet">
@@ -415,7 +485,8 @@
     </property>
     <property name="font">
      <font>
-      <pointsize>10</pointsize>
+      <family>Consolas</family>
+      <pointsize>8</pointsize>
      </font>
     </property>
     <property name="styleSheet">
@@ -443,6 +514,11 @@
       <height>70</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
+    </property>
     <property name="styleSheet">
      <string notr="true">color: white</string>
     </property>
@@ -458,6 +534,11 @@
       <width>70</width>
       <height>70</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
     </property>
     <property name="styleSheet">
      <string notr="true">color: white</string>
@@ -484,6 +565,11 @@
       <height>70</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <family>Consolas</family>
+     </font>
+    </property>
     <property name="styleSheet">
      <string notr="true">color: white</string>
     </property>
@@ -503,7 +589,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>806</width>
+     <width>798</width>
      <height>18</height>
     </rect>
    </property>
